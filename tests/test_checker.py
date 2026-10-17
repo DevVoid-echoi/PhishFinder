@@ -51,5 +51,18 @@ class TestInvalidInput(unittest.TestCase):
                 self.assertIn("error", analyze(link))
 
 
+class TestFalsePositives(unittest.TestCase):
+    def test_short_brand_inside_word(self):
+        for link in ["https://zalora.com", "https://tikitaka.com", "https://bidvietnam.com"]:
+            with self.subTest(link=link):
+                self.assertLess(analyze(link)["score"], 30)
+
+    def test_short_brand_as_token_still_caught(self):
+        for link in ["https://zalo-nhanqua.com", "https://tiki-hoantien.net",
+                     "https://bidv.secure-login.top"]:
+            with self.subTest(link=link):
+                self.assertGreaterEqual(analyze(link)["score"], 40)
+
+
 if __name__ == "__main__":
     unittest.main()

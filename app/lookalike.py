@@ -1,3 +1,4 @@
+import re
 from difflib import SequenceMatcher
 from typing import Optional, Tuple
 
@@ -28,12 +29,19 @@ HOMOGLYPHS = [("rn", "m"), ("vv", "w"), ("0", "o"), ("1", "l"), ("3", "e"), ("5"
 
 Finding = Optional[Tuple[int, str]]
 
+SHORT_BRAND_LEN = 5
 
 def normalize(s: str) -> str:
     s = s.lower().replace("-", "")
     for fake, real in HOMOGLYPHS:
         s = s.replace(fake, real)
     return s
+
+def contains_brand(brand: str, text: str) -> bool:
+    if len(brand) <= SHORT_BRAND_LEN:
+        tokens = {normalize(t) for t in re.split(r"[-.\s]", text.lower()) if t}
+        return brand in tokens
+    return brand in normalize(text)
 
 def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
@@ -45,13 +53,13 @@ def check_lookalike(u: ParsedURL) -> Finding:
 
     name = normalize(u.domain_name)
     for brand in BRANDS:
-        if len(brand) >= 4 and brand in name:
+        if len(brand) >= 4 and contains_brand(brand, u.domain_name):
             return 40, f"Domain contains '{brand}' but is not an official {brand} domain"
         if similarity(name, brand) >= 0.85:
             return 40, f"Domain '{u.domain_name}' closely resembles '{brand}' (possible impersonation)"
     sub = normalize(u.subdomain)
     for brand in BRANDS:
-        if len(brand) >= 4 and brand in sub:
+        if len(brand) >= 4 and contains_brand(brand, u.subdomain):
             return 35, f"'{brand}' appears in the subdomain, but the registered domain is {u.registered_domain}"
     return None
 
