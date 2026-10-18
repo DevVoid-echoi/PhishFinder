@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-MULTI_PART_SUFFIXES = {"com.vn", "net.vn", "org.vn", "edu.vn", "gov.vn", "co.uk"}
+import tldextract
+
+_extract = tldextract.TLDExtract(include_psl_private_domains=True, suffix_list_urls=())
 
 
 @dataclass
@@ -25,20 +27,11 @@ def parse_url(raw: str) -> ParsedURL:
 
     parts = urlparse(url)
     hostname = (parts.hostname or "").lower().rstrip(".")
-    labels = hostname.split(".") if hostname else []
-
-    if len(labels) >= 3 and ".".join(labels[-2:]) in MULTI_PART_SUFFIXES:
-        suffix_len = 2
+    ext = _extract(hostname)
+    if ext.domain and ext.suffix:
+        registered_domain = f"{ext.domain}.{ext.suffix}"
     else:
-        suffix_len = 1
-    suffix = ".".join(labels[-suffix_len:]) if labels else ""
-
-    if len(labels) > suffix_len:
-        domain_name = labels[-suffix_len -1]
-        subdomain = ".".join(labels[: -suffix_len -1])
-        registered_domain = f"{domain_name}.{suffix}"
-    else:
-        domain_name, subdomain, registered_domain = hostname, "", hostname
+        registered_domain = hostname
 
     return ParsedURL(
         original=raw,
@@ -47,7 +40,7 @@ def parse_url(raw: str) -> ParsedURL:
         path=parts.path,
         query=parts.query,
         registered_domain=registered_domain,
-        domain_name=domain_name,
-        suffix=suffix,
-        subdomain=subdomain,
+        domain_name=ext.domain or hostname,
+        suffix=ext.suffix,
+        subdomain=ext.subdomain,
     )
