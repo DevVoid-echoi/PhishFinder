@@ -1,0 +1,20 @@
+{
+  "vietcombank": {"official": ["vietcombank.com.vn"], "aliases": ["vcb"]},
+  "techcombank": {"official": ["techcombank.com.vn", "techcombank.com"], "aliases": ["tcb"]},
+  "bidv": {"official": ["bidv.com.vn"], "aliases": []},
+  "vietinbank": {"official": ["vietinbank.vn"], "aliases": []},
+  "agribank": {"official": ["agribank.com.vn"], "aliases": []},
+  "mbbank": {"official": ["mbbank.com.vn"], "aliases": []},
+  "vpbank": {"official": ["vpbank.com.vn"], "aliases": []},
+  "tpbank": {"official": ["tpb.vn"], "aliases": []},
+  "momo": {"official": ["momo.vn"], "aliases": []},
+  "zalopay": {"official": ["zalopay.vn"], "aliases": []},
+  "shopee": {"official": ["shopee.vn"], "aliases": []},
+  "lazada": {"official": ["lazada.vn"], "aliases": []},
+  "tiki": {"official": ["tiki.vn"], "aliases": []},
+  "facebook": {"official": ["facebook.com", "fb.com", "fb.me"], "aliases": ["fb"]},
+  "instagram": {"official": ["instagram.com"], "aliases": []},
+  "zalo": {"official": ["zalo.me", "zalo.vn"], "aliases": []},
+  "vneid": {"official": ["vneid.gov.vn"], "aliases": []},
+  "gdt": {"official": ["gdt.gov.vn"], "aliases": []}
+}
