@@ -23,15 +23,22 @@ These feed the "Known limitations" section of the README.
 - **Brand in userinfo is only caught by the `@` rule.** `vietcombank.com.vn@evil.com` scores 30; the lookalike rule does not inspect the part before `@`.
 - **Brand data is maintained by hand** in `data/brands.json`. A wrong or missing official domain flags a legitimate site; aliases are only added once seen in real phishing samples.
 
+### API (`app/main.py`)
+- **No authentication or rate limiting yet.** The server must stay bound to `127.0.0.1` (the uvicorn default) until phase 4.
+- **`/docs` is always enabled.** Fine for development; should be disabled or protected when deployed.
+
 ## Decisions
 - **Reasons and level names are in English** (`dangerous`, `suspicious`, `likely_safe`), unlike the Vietnamese examples in the guide. Any new code (alerts, email analysis) must use `score_to_level()` instead of repeating the thresholds.
 - **TPBank:** only `tpb.vn` is listed as official (verified); `tpbank.vn` is intentionally not allowlisted.
 - **Single parser path.** `tldextract` is a required dependency; the guide's hand-written fallback was dropped so results cannot differ between machines.
 - **Test runner is pytest.** Install with `pip install -r requirements-dev.txt`, run with `python -m pytest` (avoids picking up a global pytest). Existing unittest-style tests run unchanged; new tests use pytest style.
-- **Dependencies are split.** `requirements.txt` holds runtime packages only; `requirements-dev.txt` adds test tools.
+- **Dependencies are split and list top-level packages only.** `requirements.txt` holds runtime packages (`fastapi`, `tldextract`, `uvicorn`); `requirements-dev.txt` adds test tools (`pytest`, `httpx2`). `pip freeze` is no longer used, so dev tools cannot leak into the runtime file. Trade-off: transitive dependencies are not pinned; a lock file (pip-tools or uv) would fix this.
+- **HTTP status codes carry meaning.** `/check` returns 200 with a result, 400 for a URL without a hostname, and 422 for schema errors (missing, empty, wrong type, longer than 2048 chars), instead of 200 with an error body.
+- **`httpx2` instead of `httpx` for `TestClient`.** Starlette 1.8 deprecates `httpx` for its test client.
+- **`/check` uses `POST` with a JSON body**, so the checked URL never appears in request paths or access logs.
 
 ## To address in upcoming steps
-- Step 8: add an `online` flag so tests and email analysis never reach the network by default; SSRF guard should use `ip.is_global` (CGNAT `100.64.0.0/10` passes the current checks); WHOIS failures on `.vn` must not add points.
+- Step 8: keep endpoints as plain `def` (thread pool) while checks are blocking; add an `online` flag so tests and email analysis never reach the network by default; SSRF guard should use `ip.is_global` (CGNAT `100.64.0.0/10` passes the current checks); WHOIS failures on `.vn` must not add points.
 - Step 8b: normalize URLs before blacklist lookup (case, query string); skip `localhost` / `0.0.0.0` entries in hosts files.
 - Step 8e: Tranco allowlist must only disable checks on the registered domain, never the subdomain check (`vietcombank-xacthuc.wordpress.com`).
 - Step 9: `to_alert` must handle error results; add `alerts.jsonl` to `.gitignore`.
