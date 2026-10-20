@@ -27,6 +27,10 @@ def parse_url(raw: str) -> ParsedURL:
 
     parts = urlparse(url)
     hostname = (parts.hostname or "").lower().rstrip(".")
+    try:
+        hostname = hostname.encode("idna").decode("ascii")
+    except UnicodeError:
+        pass
     ext = _extract(hostname)
     if ext.domain and ext.suffix:
         registered_domain = f"{ext.domain}.{ext.suffix}"
