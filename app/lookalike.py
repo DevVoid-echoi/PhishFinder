@@ -20,18 +20,33 @@ BRANDS = load_brands()
 
 HOMOGLYPHS = [("rn", "m"), ("vv", "w"), ("0", "o"), ("1", "l"), ("3", "e"), ("5", "s")]
 
+CONFUSABLES = str.maketrans({
+    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "х": "x", "у": "y", "і": "i", "ј": "j",
+    "ѕ": "s", "ԁ": "d", "һ": "h", "ӏ": "l", "ο": "o", "ν": "v", "α": "a", "ı": "i",
+})
+
 Finding = Optional[Tuple[int, str]]
 
 SHORT_BRAND_LEN = 5
 
+def unpunycode(label: str) -> str:
+    if label.startswith("xn--"):
+        try:
+            label = label.encode("ascii").decode("idna")
+        except UnicodeError:
+            return label
+    return label.translate(CONFUSABLES)
+
 def normalize(s: str) -> str:
-    s = s.lower().replace("-", "")
+    s = ".".join(unpunycode(p) for p in s.lower().split("."))
+    s = s.replace("-", "")
     for fake, real in HOMOGLYPHS:
         s = s.replace(fake, real)
     return s
 
 def tokens(text: str) -> set:
-    return {normalize(t) for t in re.split(r"[-.\s]", text.lower()) if t}
+    labels = [unpunycode(p) for p in re.split(r"[.\s]", text.lower())]
+    return {normalize(t) for label in labels for t in label.split("-") if t}
 
 def contains_brand(brand: str, text: str) -> bool:
     if len(brand) <= SHORT_BRAND_LEN:
@@ -59,7 +74,7 @@ def check_lookalike(u: ParsedURL) -> Finding:
     for brand, info in BRANDS.items():
         hit = info["aliases"] & parts
         if hit:
-            return 35, f"Domain uses '{hit.pop()}', an abbreviation of {brand}, but is not an official {brand} domain"
+            return 35, f"Domain uses '{sorted(hit)[0]}', an abbreviation of {brand}, but is not an official {brand} domain"
 
     for brand in BRANDS:
         if len(brand) >= 4 and contains_brand(brand, u.subdomain):
