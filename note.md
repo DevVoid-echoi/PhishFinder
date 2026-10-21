@@ -25,6 +25,13 @@ These feed the "Known limitations" section of the README.
 - **Unicode lookalikes use a small confusables table.** Punycode labels are decoded and Cyrillic/Greek look-alike letters are mapped to Latin, so `mоmо.vn` (Cyrillic о) scores 65. The full Unicode confusables list has thousands of entries; characters outside the table are missed.
 - **Brand data is maintained by hand** in `data/brands.json`. A wrong or missing official domain flags a legitimate site; aliases are only added once seen in real phishing samples.
 
+### Lists and evaluation data (`app/lists.py`, `scripts/`)
+- **Few Vietnamese-targeted pages in fresh feeds.** About 78 of 155,901 phishing.army domains look Vietnam-related (`.vn` or a Vietnamese brand). Recall on Vietnamese phishing will rest on a small sample; manually collected links (`data/samples_phishing.txt`) matter most.
+- **Labels are noisy.** Feeds contain dead pages and likely mislabels (e.g. `account.esms.vn`); hand-check 50 random entries per set before measuring.
+- **Daily snapshots miss short-lived entries.** phishing.army refreshes every 4 hours; an entry added and removed within a day is never recorded.
+- **Domain-list entries become `http://<domain>/`.** Every such phishing sample triggers `check_no_https` and none trigger path rules (keywords, long URL). Benign entries must be built the same way, or the evaluation and the weights learned in step 9 will reward the scheme instead of real signals.
+- **URL blocklist matching ignores scheme, host case and trailing slash, and drops an appended query** when the listed URL has none. A listed URL that carries its own query still needs that exact query, so attackers can evade it by changing parameters.
+
 ### API (`app/main.py`)
 - **Current `/check` accepts a full URL, which conflicts with the production plan.** Paths and query strings can carry reset tokens, emails or order IDs. To be replaced in step 7 by a hostname-only `/v1/reputation`; do not deploy the current version.
 - **No authentication or rate limiting yet.** The server must stay bound to `127.0.0.1` (the uvicorn default) until phase 4.
@@ -41,12 +48,16 @@ These feed the "Known limitations" section of the README.
 - **`/check` uses `POST` with a JSON body**, so the checked URL never appears in request paths or access logs.
 - **Hostnames are converted to punycode like browsers do**, so the Python core sees the same input as the extension.
 - **Deterministic output.** Wherever a set is involved (e.g. the matched alias), pick with `sorted(...)`, so the JavaScript port (step 12) can match the Python results exactly.
+- **Evaluation sources.** vn-badsite-filter is frozen since 2025-05 (upstream `api.chongluadao.vn` shut down), so it serves as blocklist (16,843 domains, CC0/MIT) and "old" phishing only. Fresh phishing comes from phishing.army (aggregated, refreshed every 4 hours, free for personal use) and OpenPhish (community feed, full URLs).
+- **Raw feeds and `data/eval/phishing.csv` are not committed** (personal-use terms, size). `phishing.csv` must be backed up weekly because its `first_seen` dates cannot be recreated. First collection: 2026-10-21, 173,196 entries (all "old" by definition).
+- **Tests never depend on downloaded data.** They replace lists with `monkeypatch` and write files under `tmp_path`, so results do not change when the feeds do.
+- **Feed downloads are bounded and atomic:** 60 s timeout, 20 MB cap, write to `.part` then rename.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
 ## To address in upcoming steps
-- Step 6b: `evaluate()` in the guide counts Vietnamese level names (`nguy_hiem`, `dang_ngo`); use `dangerous` / `suspicious` or every metric reads 0%. Start collecting fresh phishing links daily as early as possible.
+- Step 6b (part 2): `evaluate()` in the guide counts Vietnamese level names (`nguy_hiem`, `dang_ngo`); use `dangerous` / `suspicious` or every metric reads 0%. Build benign entries with the same scheme as domain-only phishing entries. Wire `check_blacklist` into `analyze` behind `use_blacklist`.
+- Daily until release: `python -m scripts.download_feeds`, then `python -m scripts.collect_fresh data/raw/phishing_army.txt data/raw/openphish.txt data/raw/vn_badsite.txt data/samples_phishing.txt`. Automated in step 14.
 - Step 8a: `python-whois` fails on every `.vn` domain tested (`WhoisError`) and returns `None` for some gTLDs, which the guide scores as 10 points. Prefer RDAP (JSON over HTTPS, standard library only); it works for `.com`, `.xyz`, `.top`, `.shop`, `.icu`, but not `.vn`. Lookup failures must not add points.
-- Step 8b: normalize URLs before blacklist lookup (case, query string); skip `localhost` / `0.0.0.0` entries in hosts files.
 - Step 8d: SSRF guard should use `ip.is_global` (CGNAT `100.64.0.0/10` passes the current checks).
 - Step 8e / 9: Tranco allowlist must only disable checks on the registered domain, never the subdomain check (`vietcombank-xacthuc.wordpress.com`). `run_rules` in the guide still skips the whole lookalike rule.
 - Step 9: `level_of()` in the guide uses Vietnamese names; extend `score_to_level()` with red/yellow thresholds instead. Reset `WEIGHTS` for tests with a pytest fixture in `tests/conftest.py`.
