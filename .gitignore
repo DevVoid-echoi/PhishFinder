@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Downloaded feeds and evaluation data (personal-use terms, large, may contain private history)
+data/raw/
+data/eval/phishing.csv
+data/eval/benign_private.txt
