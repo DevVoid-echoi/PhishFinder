@@ -223,3 +223,5 @@ __marimo__/
 data/raw/
 data/eval/phishing.csv
 data/eval/benign_private.txt
+data/eval/benign.txt
+data/tranco_top.csv

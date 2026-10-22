@@ -1,0 +1,30 @@
+# Legitimate Vietnamese sites: the group most likely to be flagged by mistake.
+# One URL or domain per line. Verify each entry yourself before adding it.
+# Banks
+https://vietcombank.com.vn
+https://techcombank.com.vn
+https://bidv.com.vn
+https://vietinbank.vn
+https://agribank.com.vn
+https://mbbank.com.vn
+https://vpbank.com.vn
+https://tpb.vn
+# E-wallets and e-commerce
+https://momo.vn
+https://zalopay.vn
+https://shopee.vn
+https://lazada.vn
+https://tiki.vn
+https://zalo.me
+# News
+https://vnexpress.net
+https://tuoitre.vn
+https://thanhnien.vn
+https://dantri.com.vn
+https://vietnamnet.vn
+# Education and government
+https://hust.edu.vn
+https://vnu.edu.vn
+https://chinhphu.vn
+https://gdt.gov.vn
+https://vneid.gov.vn
