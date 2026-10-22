@@ -37,6 +37,13 @@ These feed the "Known limitations" section of the README.
 - **The Vietnamese subset is defined by `.vn` suffix only**, so it does not depend on the rules being measured, but it misses Vietnamese-targeted pages on other suffixes (`vcb-xacthuc.com`). Manually collected samples would give a better Vietnamese set.
 - **URL blocklist matching ignores scheme, host case and trailing slash, and drops an appended query** when the listed URL has none. A listed URL that carries its own query still needs that exact query, so attackers can evade it by changing parameters.
 
+### Reputation (`app/online.py`)
+- **No domain age for `.vn`:** there is no RDAP service for the TLD, so Vietnamese domains rely on the text rules only.
+- **Hacked old sites have a normal age.** `aaghazedosti.com` (registered 2022) hosts phishing; domain age only catches newly registered domains.
+- **Phishing domains disappear quickly.** `006901.com`, collected on 2026-10-21, returned 404 (no longer registered) a day later. Look up the step 9.3 sample soon after collection.
+- **RDAP servers rate-limit and reset connections** (Verisign reset one request, then answered). The API in step 7 must cache results instead of querying on every request; any failure already gives no finding.
+- **`None` does not say why.** Not registered, unsupported TLD and network errors all give no finding by design; call `fetch_json(rdap_url(...))` directly when debugging.
+
 ### False alarms seen in the first measurements (fix in step 9, measured on the validation set)
 - **Official domains in other countries:** `facebook.de`, `thefacebook.com`, `shopeepay.com.br` are flagged as impersonation because `brands.json` lists only the main domains.
 - **Brand contained in a longer real name:** `otpbank.ru` (a real bank) contains `tpbank` and scored red (60).
@@ -67,13 +74,14 @@ These feed the "Known limitations" section of the README.
 - **Tests start with empty lists** through an autouse fixture in `tests/conftest.py`, so `analyze()` can consult the real blacklist in production without making tests depend on downloaded data.
 - **Benign and phishing entries share one URL form:** bare domains become `http://<domain>/` in both sets, so the scheme carries no label information.
 - **Benign pages come from Tranco ranks 10,001-40,000,** never the top 10,000 that will be allowlisted; benign hosts also labelled phishing are dropped. The Tranco list ID is committed in `data/eval/tranco_id.txt`; the derived files are not.
+- **Domain age uses RDAP** (JSON over HTTPS, standard library only) instead of python-whois, which failed on every `.vn` domain tested and returned no date for some gTLDs. Any lookup failure gives no finding. First live check: 6 of 8 fresh phishing domains were under 30 days old.
+- **Tests block the network** with an autouse fixture in `tests/conftest.py`: any accidental real request raises `RuntimeError`, which no code path catches, so the test fails.
 - **Feed downloads are bounded and atomic:** 60 s timeout, 20 MB cap, write to `.part` then rename.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
 ## To address in upcoming steps
 - Step 6b follow-up: grow the benign set to ~80,000 pages and pin one Tranco list while comparing changes; extend `data/eval/benign_vn.txt` to 300-500 Vietnamese pages, including login and payment subpages; hand-check 50 random entries per set.
 - Daily until release: `python -m scripts.download_feeds`, then `python -m scripts.collect_fresh data/raw/phishing_army.txt data/raw/openphish.txt data/raw/vn_badsite.txt data/samples_phishing.txt`. Weekly: `python -m scripts.update_tranco`. Automated in step 14.
-- Step 8a: `python-whois` fails on every `.vn` domain tested (`WhoisError`) and returns `None` for some gTLDs, which the guide scores as 10 points. Prefer RDAP (JSON over HTTPS, standard library only); it works for `.com`, `.xyz`, `.top`, `.shop`, `.icu`, but not `.vn`. Lookup failures must not add points.
 - Step 8d: SSRF guard should use `ip.is_global` (CGNAT `100.64.0.0/10` passes the current checks).
 - Step 8e / 9: Tranco allowlist must only disable checks on the registered domain, never the subdomain check (`vietcombank-xacthuc.wordpress.com`). `run_rules` in the guide still skips the whole lookalike rule.
 - Step 9: `level_of()` in the guide uses Vietnamese names; extend `score_to_level()` with red/yellow thresholds instead. Reset `WEIGHTS` for tests with a pytest fixture in `tests/conftest.py`.
