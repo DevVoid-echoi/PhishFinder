@@ -1,4 +1,5 @@
 from app.heuristics import ALL_CHECKS
+from app.lists import check_blacklist
 from app.lookalike import check_lookalike
 from app.parser import parse_url
 
@@ -10,21 +11,26 @@ def score_to_level(score: int) -> str:
         return "suspicious"
     return "likely_safe"
 
-def analyze(raw_url: str) -> dict:
+def run_rules(u) -> list:
+    """Run the heuristic rules (not the blacklist) and return their findings."""
+    findings = []
+    for check in ALL_CHECKS + [check_lookalike]:
+            result = check(u)
+            if result:
+                points, reason = result
+                findings.append({"rule": check.__name__, "points": points, "reason": reason})
+    return findings
+
+def analyze(raw_url: str, use_blacklist: bool = True) -> dict:
     u = parse_url(raw_url)
     if not u.hostname:
         return {"url": raw_url, "error": "Could not extract a hostname from this URL"}
 
-    reasons = []
-    total = 0
-    for check in ALL_CHECKS + [check_lookalike]:
-        result = check(u)
-        if result:
-            points, reason = result
-            total += points
-            reasons.append({"rule": check.__name__, "points": points, "reason": reason})
-
-    score = min(total, 100)
+    reasons = run_rules(u)
+    hit = check_blacklist(u) if use_blacklist else None
+    if hit:
+        reasons.append({"rule": "check_blacklist", "points": hit[0], "reason": hit[1]})
+    score = min(sum(r["points"] for r in reasons), 100)
 
     return {
         "url": raw_url,
