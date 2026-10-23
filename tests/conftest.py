@@ -16,3 +16,5 @@ def no_network(monkeypatch):
         raise RuntimeError("network access is note allowed in tests")
 
     monkeypatch.setattr("urllib.request.urlopen", blocked)
+    monkeypatch.setattr("socket.getaddrinfo", blocked)
+    monkeypatch.setattr("socket.create_connection", blocked)
