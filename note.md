@@ -53,7 +53,8 @@ These feed the "Known limitations" section of the README.
 - **Brand contained in a longer real name:** `otpbank.ru` (a real bank) contains `tpbank` and scored red (60).
 - **Three-letter names vs four-letter brands:** `bid.cars`, `mom.gov.sg`, `alo.rs` reach similarity 0.857 with `bidv`, `momo`, `zalo`, above the 0.85 threshold.
 - **Alias as a whole label:** `fb.gg` matches the `fb` alias.
-- **Legitimate IDN domains** (Thai, Russian) score 35 from punycode (25) plus HTTP (10).
+- **Legitimate IDN domains** (Thai, Russian) score 35 from punycode (25) plus HTTP (10). The 10 sites still flagged in the Tranco top 10,000 are all IDN domains; with `https://` they drop to 25. Punycode alone is a weak signal.
+- **The allowlist cannot fix these on the benign test set** by design: it covers ranks 1-10,000 while the benign set uses 10,001-40,000.
 
 ### API (`app/main.py`)
 - **Current `/check` accepts a full URL, which conflicts with the production plan.** Paths and query strings can carry reset tokens, emails or order IDs. To be replaced in step 7 by a hostname-only `/v1/reputation`; do not deploy the current version.
@@ -82,14 +83,17 @@ These feed the "Known limitations" section of the README.
 - **TLS check blocks SSRF with an allowlist, not a denylist:** every resolved address must be `is_global` and not multicast (the guide's check let CGNAT `100.64.0.0/10` and multicast through), and the connection goes to the checked IP with the hostname as SNI, which closes the DNS-rebinding gap.
 - **No signal subtracts points.** Lookup failures, SSRF refusals and timeouts add nothing; the lowest level is named `likely_safe`, never `safe`.
 - **Tests block the network** with an autouse fixture in `tests/conftest.py`: any accidental real request raises `RuntimeError`, which no code path catches, so the test fails.
+- **The Tranco allowlist only disables lookalike checks on the registered domain;** subdomain and alias-in-subdomain checks still run. 752 collected phishing entries sit on allowlisted platforms (`eu.cc` 623, `mybluehost.me` 42, `cloudwaysapps.com` 14, `meusitehostgator.com.br` 13, `railway.app`, `gitbook.io`...), where the guide's design would skip every lookalike check (`vietcombank-xacthuc.wordpress.com`: 45 -> 10).
+- **Measured benefit of the allowlist:** false alarms among the Tranco top 10,000 drop from 35 to 10 (Tranco 746PX), all of them brands' own foreign or infrastructure domains (`shopee.co.id`, `lazada.sg`, `facebook.net`, `fb.watch`, `cdninstagram.com`). Accepted cost: a few non-brand sites are spared too (`sssinstagram.com`, a third-party downloader).
+- **`VERIFIED` (hand-checked after a user report) skips every rule;** the allowlist skips only the domain-level lookalike checks. The blacklist applies to both.
 - **Feed downloads are bounded and atomic:** 60 s timeout, 20 MB cap, write to `.part` then rename.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
 ## To address in upcoming steps
 - Step 6b follow-up: grow the benign set to ~80,000 pages and pin one Tranco list while comparing changes; extend `data/eval/benign_vn.txt` to 300-500 Vietnamese pages, including login and payment subpages; hand-check 50 random entries per set.
 - Daily until release: `python -m scripts.download_feeds`, then `python -m scripts.collect_fresh data/raw/phishing_army.txt data/raw/openphish.txt data/raw/vn_badsite.txt data/samples_phishing.txt`. Weekly: `python -m scripts.update_tranco`. Automated in step 14.
-- Step 8e / 9: Tranco allowlist must only disable checks on the registered domain, never the subdomain check (`vietcombank-xacthuc.wordpress.com`). `run_rules` in the guide still skips the whole lookalike rule.
 - Step 9 (idea, measure before adding): a public domain resolving to an internal address is anomalous and could score (possible DNS rebinding); legitimate developer domains (`localtest.me`, `lvh.me`, `*.nip.io`) would be false alarms.
+- Step 9 (idea): for allowlisted domains, try reducing the domain-level lookalike points instead of skipping them, and keep whichever measures better on the validation set. Print false alarms from the validation split, not the test split, while tuning.
 - Step 9: `level_of()` in the guide uses Vietnamese names; extend `score_to_level()` with red/yellow thresholds instead. Reset `WEIGHTS` for tests with a pytest fixture in `tests/conftest.py`.
 - Step 7 (week 5, after step 8): rewrite the API as in the plan (`/v1/reputation?host=`, `/v1/report`, `/v1/health`, docs disabled, CORS); keep endpoints as plain `def` while checks are blocking. `Report.shown_level` must use English level names.
 - Step 10: `to_alert` must handle error results; add `alerts.jsonl` to `.gitignore`.
