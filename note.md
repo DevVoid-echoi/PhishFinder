@@ -42,6 +42,10 @@ These feed the "Known limitations" section of the README.
 - **Hacked old sites have a normal age.** `aaghazedosti.com` (registered 2022) hosts phishing; domain age only catches newly registered domains.
 - **Phishing domains disappear quickly.** `006901.com`, collected on 2026-10-21, returned 404 (no longer registered) a day later. Look up the step 9.3 sample soon after collection.
 - **RDAP servers rate-limit and reset connections** (Verisign reset one request, then answered). The API in step 7 must cache results instead of querying on every request; any failure already gives no finding.
+- **TLS: free certificates are not a signal; new ones are.** Only certificates issued in the last 7 days score (20). First live check: 4 of 15 fresh phishing hosts had certificates issued one day earlier.
+- **TLS: invalid certificates score 30,** which also flags legitimate sites with expired or misconfigured certificates.
+- **TLS: slow worst case.** About 10 s per host (2 addresses x 5 s timeout), and DNS resolution has no timeout of its own; the API (step 7) must cache results or run the check off the request path.
+- **Server-side checks can be cloaked.** An attacker can answer the server differently from victims (by IP, region or time). Rules that run in the browser are not affected; no single server-side signal is trusted alone.
 - **`None` does not say why.** Not registered, unsupported TLD and network errors all give no finding by design; call `fetch_json(rdap_url(...))` directly when debugging.
 
 ### False alarms seen in the first measurements (fix in step 9, measured on the validation set)
@@ -60,7 +64,7 @@ These feed the "Known limitations" section of the README.
 - **Reasons and level names are in English** (`dangerous`, `suspicious`, `likely_safe`), unlike the Vietnamese examples in the guide. Any new code (alerts, email analysis) must use `score_to_level()` instead of repeating the thresholds.
 - **TPBank:** only `tpb.vn` is listed as official (verified); `tpbank.vn` is intentionally not allowlisted.
 - **Single parser path.** `tldextract` is a required dependency; the guide's hand-written fallback was dropped so results cannot differ between machines.
-- **Test runner is pytest.** Install with `pip install -r requirements-dev.txt`, run with `python -m pytest` (avoids picking up a global pytest). Existing unittest-style tests run unchanged; new tests use pytest style.
+- **Test runner is pytest.** Install with `pip install -r requirements-dev.txt`, run with `python -m pytest` (avoids picking up a global pytest). All tests use pytest style (plain `assert`, `parametrize`, fixtures); the last unittest-style file was converted in step 8d.
 - **Dependencies are split and list top-level packages only.** `requirements.txt` holds runtime packages (`fastapi`, `tldextract`, `uvicorn`); `requirements-dev.txt` adds test tools (`pytest`, `httpx2`). `pip freeze` is no longer used, so dev tools cannot leak into the runtime file. Trade-off: transitive dependencies are not pinned; a lock file (pip-tools or uv) would fix this.
 - **HTTP status codes carry meaning.** `/check` returns 200 with a result, 400 for a URL without a hostname, and 422 for schema errors (missing, empty, wrong type, longer than 2048 chars), instead of 200 with an error body.
 - **`httpx2` instead of `httpx` for `TestClient`.** Starlette 1.8 deprecates `httpx` for its test client.
@@ -75,6 +79,8 @@ These feed the "Known limitations" section of the README.
 - **Benign and phishing entries share one URL form:** bare domains become `http://<domain>/` in both sets, so the scheme carries no label information.
 - **Benign pages come from Tranco ranks 10,001-40,000,** never the top 10,000 that will be allowlisted; benign hosts also labelled phishing are dropped. The Tranco list ID is committed in `data/eval/tranco_id.txt`; the derived files are not.
 - **Domain age uses RDAP** (JSON over HTTPS, standard library only) instead of python-whois, which failed on every `.vn` domain tested and returned no date for some gTLDs. Any lookup failure gives no finding. First live check: 6 of 8 fresh phishing domains were under 30 days old.
+- **TLS check blocks SSRF with an allowlist, not a denylist:** every resolved address must be `is_global` and not multicast (the guide's check let CGNAT `100.64.0.0/10` and multicast through), and the connection goes to the checked IP with the hostname as SNI, which closes the DNS-rebinding gap.
+- **No signal subtracts points.** Lookup failures, SSRF refusals and timeouts add nothing; the lowest level is named `likely_safe`, never `safe`.
 - **Tests block the network** with an autouse fixture in `tests/conftest.py`: any accidental real request raises `RuntimeError`, which no code path catches, so the test fails.
 - **Feed downloads are bounded and atomic:** 60 s timeout, 20 MB cap, write to `.part` then rename.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
@@ -82,8 +88,8 @@ These feed the "Known limitations" section of the README.
 ## To address in upcoming steps
 - Step 6b follow-up: grow the benign set to ~80,000 pages and pin one Tranco list while comparing changes; extend `data/eval/benign_vn.txt` to 300-500 Vietnamese pages, including login and payment subpages; hand-check 50 random entries per set.
 - Daily until release: `python -m scripts.download_feeds`, then `python -m scripts.collect_fresh data/raw/phishing_army.txt data/raw/openphish.txt data/raw/vn_badsite.txt data/samples_phishing.txt`. Weekly: `python -m scripts.update_tranco`. Automated in step 14.
-- Step 8d: SSRF guard should use `ip.is_global` (CGNAT `100.64.0.0/10` passes the current checks).
 - Step 8e / 9: Tranco allowlist must only disable checks on the registered domain, never the subdomain check (`vietcombank-xacthuc.wordpress.com`). `run_rules` in the guide still skips the whole lookalike rule.
+- Step 9 (idea, measure before adding): a public domain resolving to an internal address is anomalous and could score (possible DNS rebinding); legitimate developer domains (`localtest.me`, `lvh.me`, `*.nip.io`) would be false alarms.
 - Step 9: `level_of()` in the guide uses Vietnamese names; extend `score_to_level()` with red/yellow thresholds instead. Reset `WEIGHTS` for tests with a pytest fixture in `tests/conftest.py`.
 - Step 7 (week 5, after step 8): rewrite the API as in the plan (`/v1/reputation?host=`, `/v1/report`, `/v1/health`, docs disabled, CORS); keep endpoints as plain `def` while checks are blocking. `Report.shown_level` must use English level names.
 - Step 10: `to_alert` must handle error results; add `alerts.jsonl` to `.gitignore`.
