@@ -59,18 +59,22 @@ def similarity(a: str, b: str) -> float:
 def is_official(registered_domain: str) -> bool:
     return any(registered_domain in info["official"] for info in BRANDS.values())
 
-def check_lookalike(u: ParsedURL) -> Finding:
+def check_lookalike(u: ParsedURL, check_domain: bool=True) -> Finding:
+    """check_domain=False (allowlisted popular domain): skip the checks on the registered
+    domain itself, but keep the subdomain checks, because anyone can create
+    vietcombank-xacthuc.<platform> on a popular hosting platform."""
     if is_official(u.registered_domain):
         return None
 
-    name = normalize(u.domain_name)
-    for brand in BRANDS:
-        if len(brand) >= 4 and contains_brand(brand, u.domain_name):
-            return 40, f"Domain contains '{brand}' but is not an official {brand} domain"
-        if similarity(name, brand) >= 0.85:
-            return 40, f"Domain '{u.domain_name}' closely resembles '{brand}' (possible impersonation)"
+    if check_domain:
+        name = normalize(u.domain_name)
+        for brand in BRANDS:
+            if len(brand) >= 4 and contains_brand(brand, u.domain_name):
+                return 40, f"Domain contains '{brand}' but is not an official {brand} domain"
+            if similarity(name, brand) >= 0.85:
+                return 40, f"Domain '{u.domain_name}' closely resembles '{brand}' (possible impersonation)"
     
-    parts = tokens(u.domain_name) | tokens(u.subdomain)
+    parts = tokens(u.subdomain) | (tokens(u.domain_name) if check_domain else set())
     for brand, info in BRANDS.items():
         hit = info["aliases"] & parts
         if hit:

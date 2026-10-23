@@ -1,5 +1,5 @@
 from app.heuristics import ALL_CHECKS
-from app.lists import check_blacklist
+from app.lists import check_blacklist, is_allowlisted, is_verified
 from app.lookalike import check_lookalike
 from app.parser import parse_url
 
@@ -13,12 +13,17 @@ def score_to_level(score: int) -> str:
 
 def run_rules(u) -> list:
     """Run the heuristic rules (not the blacklist) and return their findings."""
+    if is_verified(u.registered_domain):
+        return []
     findings = []
-    for check in ALL_CHECKS + [check_lookalike]:
-            result = check(u)
-            if result:
-                points, reason = result
-                findings.append({"rule": check.__name__, "points": points, "reason": reason})
+    for check in ALL_CHECKS:
+        result = check(u)
+        if result:
+            findings.append({"rule": check.__name__, "points": result[0], "reason": result[1]})
+    # Popular (allowlisted) domains skip the lookalike checks on their own name only
+    result = check_lookalike(u, check_domain=not is_allowlisted(u.registered_domain))
+    if result:
+        findings.append({"rule": "check_lookalike", "points": result[0], "reason": result[1]})
     return findings
 
 def analyze(raw_url: str, use_blacklist: bool = True) -> dict:
