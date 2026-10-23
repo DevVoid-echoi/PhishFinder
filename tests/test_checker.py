@@ -1,68 +1,69 @@
-import unittest
+"""Core detection tests: parser, legitimate sites, phishing patterns, invalid input."""
+import pytest
 
 from app.parser import parse_url
 from app.scorer import analyze
 
 
-class TestParser(unittest.TestCase):
-    def test_vn_domain(self):
-        u = parse_url("https://ebank.vietcombank.com.vn/login")
-        self.assertEqual(u.registered_domain, "vietcombank.com.vn")
-        self.assertEqual(u.domain_name, "vietcombank")
-        self.assertEqual(u.subdomain, "ebank")
-
-    def test_missing_scheme(self):
-        self.assertEqual(parse_url("shopee.vn").hostname, "shopee.vn")
+def test_vn_domain():
+    u = parse_url("https://ebank.vietcombank.com.vn/login")
+    assert u.registered_domain == "vietcombank.com.vn"
+    assert u.domain_name == "vietcombank"
+    assert u.subdomain == "ebank"
 
 
-class TestSafeLinks(unittest.TestCase):
-    def test_official_sites_are_low_risk(self):
-        for link in ["https://vietcombank.com.vn", "https://shopee.vn/sale",
-                     "https://www.facebook.com/groups/abc", "https://hust.edu.vn"]:
-            with self.subTest(link=link):
-                self.assertLess(analyze(link)["score"], 30)
+def test_missing_scheme():
+    assert parse_url("shopee.vn").hostname == "shopee.vn"
 
 
-class TestPhishingLinks(unittest.TestCase):
-    def test_brand_in_fake_domain(self):
-        r = analyze("http://vietcombank-xacthuc.com/dang-nhap")
-        self.assertGreaterEqual(r["score"], 60)
-        self.assertEqual(r["level"], "dangerous")
-
-    def test_typosquatting(self):
-        self.assertGreaterEqual(analyze("https://vietcornbank.com")["score"], 40)
-        self.assertGreaterEqual(analyze("https://sh0pee.vn")["score"], 40)
-
-    def test_brand_in_subdomain(self):
-        self.assertGreaterEqual(analyze("https://momo.vn.nhanqua.xyz")["score"], 60)
-
-    def test_ip_and_at_symbol(self):
-        self.assertGreaterEqual(analyze("http://192.168.1.10/login")["score"], 30)
-        self.assertGreaterEqual(analyze("https://vietcombank.com.vn@evil.com")["score"], 30)
-
-    def test_reasons_are_given(self):
-        self.assertTrue(analyze("http://sh0pee-nhanqua.top")["reasons"])
+@pytest.mark.parametrize("link", [
+    "https://vietcombank.com.vn",
+    "https://shopee.vn/sale",
+    "https://www.facebook.com/groups/abc",
+    "https://hust.edu.vn",
+])
+def test_official_sites_are_low_risk(link):
+    assert analyze(link)["score"] < 30
 
 
-class TestInvalidInput(unittest.TestCase):
-    def test_no_hostname(self):
-        for link in ["", " ", "http://"]:
-            with self.subTest(link=link):
-                self.assertIn("error", analyze(link))
+def test_brand_in_fake_domain():
+    r = analyze("http://vietcombank-xacthuc.com/dang-nhap")
+    assert r["score"] >= 60
+    assert r["level"] == "dangerous"
 
 
-class TestFalsePositives(unittest.TestCase):
-    def test_short_brand_inside_word(self):
-        for link in ["https://zalora.com", "https://tikitaka.com", "https://bidvietnam.com"]:
-            with self.subTest(link=link):
-                self.assertLess(analyze(link)["score"], 30)
-
-    def test_short_brand_as_token_still_caught(self):
-        for link in ["https://zalo-nhanqua.com", "https://tiki-hoantien.net",
-                     "https://bidv.secure-login.top"]:
-            with self.subTest(link=link):
-                self.assertGreaterEqual(analyze(link)["score"], 40)
+@pytest.mark.parametrize("link", ["https://vietcornbank.com", "https://sh0pee.vn"])
+def test_typosquatting(link):
+    assert analyze(link)["score"] >= 40
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_brand_in_subdomain():
+    assert analyze("https://momo.vn.nhanqua.xyz")["score"] >= 60
+
+
+@pytest.mark.parametrize("link", ["http://192.168.1.10/login", "https://vietcombank.com.vn@evil.com"])
+def test_ip_and_at_symbol(link):
+    assert analyze(link)["score"] >= 30
+
+
+def test_reasons_are_given():
+    assert analyze("http://sh0pee-nhanqua.top")["reasons"]
+
+
+@pytest.mark.parametrize("link", ["", " ", "http://"])
+def test_no_hostname(link):
+    assert "error" in analyze(link)
+
+
+@pytest.mark.parametrize("link", ["https://zalora.com", "https://tikitaka.com", "https://bidvietnam.com"])
+def test_short_brand_inside_word(link):
+    assert analyze(link)["score"] < 30
+
+
+@pytest.mark.parametrize("link", [
+    "https://zalo-nhanqua.com",
+    "https://tiki-hoantien.net",
+    "https://bidv.secure-login.top",
+])
+def test_short_brand_as_token_still_caught(link):
+    assert analyze(link)["score"] >= 40
