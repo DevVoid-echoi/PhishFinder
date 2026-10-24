@@ -18,7 +18,7 @@ URL = "https://tranco-list.eu/top-1m.csv.zip"
 ID_URL = "https://tranco-list.eu/top-1m-id"
 MAX_BYTES = 50 * 1024 * 1024
 TOP_N = 10_000
-BENIGN_END = 40_000
+BENIGN_END = 90_000
 
 
 def fetch(url: str, timeout: int) -> bytes:
