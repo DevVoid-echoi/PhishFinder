@@ -95,6 +95,13 @@ These feed the "Known limitations" section of the README.
 - Step 9 (idea, measure before adding): a public domain resolving to an internal address is anomalous and could score (possible DNS rebinding); legitimate developer domains (`localtest.me`, `lvh.me`, `*.nip.io`) would be false alarms.
 - Step 9 (idea): for allowlisted domains, try reducing the domain-level lookalike points instead of skipping them, and keep whichever measures better on the validation set. Print false alarms from the validation split, not the test split, while tuning.
 - Step 9: `level_of()` in the guide uses Vietnamese names; extend `score_to_level()` with red/yellow thresholds instead. Reset `WEIGHTS` for tests with a pytest fixture in `tests/conftest.py`.
+- **After step 9: Vietnamese phishing sources.** Fresh Vietnamese samples are the main gap (4 `.vn` entries in the first fresh test set). Checked on 2026-10-23:
+  - ChongLuaDao: `chongluadao.vn` is online with a public denylist page, but the old API (`api.chongluadao.vn`) no longer resolves and the GitHub mirrors (vn-badsite-filter, elliotwutingfeng/ChongLuaDao-Phishing-Blocklist) are frozen. Ask them for official data access; do not scrape the site without permission. The frozen lists remain usable as "old" phishing (vn-badsite-filter is CC0/MIT; check the other repo's license).
+  - tinnhiemmang.vn (NCSC): manual lookup only, no public API.
+  - hostsVN and ABPVN are active, but they are ad-blocking lists: their `.vn` entries are ad servers, not phishing. Using them as phishing labels would poison the data.
+  - hagezi `fake` list: about 17,500 domains, only 1 Vietnam-related.
+  - Most promising: manual collection into `data/samples_phishing.txt` (scam-warning groups, news), and Certificate Transparency queries for Vietnamese brand names (crt.sh) to find new lookalike domains. CT gives unlabeled candidates that need checking; it stays in January as planned.
+  - Decision (2026-10-23): right after step 9, contact ChongLuaDao to ask for research access to their data. Everything else keeps the original schedule.
 - Step 7 (week 5, after step 8): rewrite the API as in the plan (`/v1/reputation?host=`, `/v1/report`, `/v1/health`, docs disabled, CORS); keep endpoints as plain `def` while checks are blocking. `Report.shown_level` must use English level names.
 - Step 10: `to_alert` must handle error results; add `alerts.jsonl` to `.gitignore`.
 - January (email tool): reuse `contains_brand` for display-name spoofing and `score_to_level` for email scoring.
