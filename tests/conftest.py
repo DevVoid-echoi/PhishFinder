@@ -1,6 +1,6 @@
 import pytest
 
-from app import lists
+from app import lists, scorer
 
 
 @pytest.fixture(autouse=True)
@@ -18,3 +18,8 @@ def no_network(monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen", blocked)
     monkeypatch.setattr("socket.getaddrinfo", blocked)
     monkeypatch.setattr("socket.create_connection", blocked)
+
+@pytest.fixture(autouse=True)
+def hand_written_points(monkeypatch):
+    """Rule tests check the hand-written points, whatever data/weights.json contains."""
+    monkeypatch.setattr(scorer, "WEIGHTS", None)

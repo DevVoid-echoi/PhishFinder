@@ -35,6 +35,11 @@ These feed the "Known limitations" section of the README.
 - **The time split is meaningless until several days of data exist.** On the first day every entry has the same `first_seen`, so the "newest 30%" is just the alphabetical tail.
 - **Low recall on random-looking domains is expected.** Most phishing.army entries are random strings on cheap TLDs (`*.sbs`, `*.top`); they score 25 (TLD 15 + HTTP 10), below the yellow threshold. Domain age and TLS (step 8) and learned weights (step 9) target these.
 - **The Vietnamese subset is defined by `.vn` suffix only**, so it does not depend on the rules being measured, but it misses Vietnamese-targeted pages on other suffixes (`vcb-xacthuc.com`). Manually collected samples would give a better Vietnamese set.
+- **Most fresh phishing fires no informative rule.** On the first fresh test set, 77.8% of phishing URLs fired nothing besides the HTTP rule, exactly like 98.0% of benign pages; no reweighting can separate them. The rule layer caps detection at about 22% on these feeds.
+- **The cheap-TLD rule is too common on legitimate sites to stand alone** (about 1.4% of benign pages, above the 0.5% yellow target), so a learned model cannot warn on it by itself.
+- **Fresh Vietnamese phishing is almost absent:** 4 to 7 `.vn` entries in the fresh test set, so the Vietnamese detection rate is not yet meaningful.
+- **Benign pages have no paths** (0 of 80,000) while 350 phishing entries do, so path-based rules (keywords in path, long URL) can learn leaked weights; `benign_private.txt` from real browsing would fix this.
+- **Rules that never fire in training get weight 0** in the learned model (`check_ip_host`, `check_shortener`, `check_at_symbol`), i.e. they stop affecting the score while their reasons are still shown.
 - **URL blocklist matching ignores scheme, host case and trailing slash, and drops an appended query** when the listed URL has none. A listed URL that carries its own query still needs that exact query, so attackers can evade it by changing parameters.
 
 ### Reputation (`app/online.py`)
@@ -86,6 +91,11 @@ These feed the "Known limitations" section of the README.
 - **The Tranco allowlist only disables lookalike checks on the registered domain;** subdomain and alias-in-subdomain checks still run. 752 collected phishing entries sit on allowlisted platforms (`eu.cc` 623, `mybluehost.me` 42, `cloudwaysapps.com` 14, `meusitehostgator.com.br` 13, `railway.app`, `gitbook.io`...), where the guide's design would skip every lookalike check (`vietcombank-xacthuc.wordpress.com`: 45 -> 10).
 - **Measured benefit of the allowlist:** false alarms among the Tranco top 10,000 drop from 35 to 10 (Tranco 746PX), all of them brands' own foreign or infrastructure domains (`shopee.co.id`, `lazada.sg`, `facebook.net`, `fb.watch`, `cdninstagram.com`). Accepted cost: a few non-brand sites are spared too (`sssinstagram.com`, a third-party downloader).
 - **`VERIFIED` (hand-checked after a user report) skips every rule;** the allowlist skips only the domain-level lookalike checks. The blacklist applies to both.
+- **Weights are learned with logistic regression on rule sets, not URLs.** About 207,000 URLs collapse into ~33 distinct (rule set, label) groups; training on grouped counts gives the same result thousands of times faster, so 5,000 epochs take 0.1 s.
+- **L2 is chosen on the validation split** (0.01 / 0.001 / 0.0001 / 0.00001): the guide's fixed 0.01 pushed rare rules to almost zero (lookalike 0.13). Thresholds are picked on benign validation, with floors of 70 (red) and 40 (yellow).
+- **The phishing test set is every entry first seen after the first collection day;** the first day is a snapshot of everything already known and is used for training and validation only.
+- **Learned weights are not used yet.** On the fresh test set they detect less than the hand-written points (0.7% vs 1.4%; Vietnamese 0/7 vs 5/7) while both meet the false-alarm targets. `data/weights.json` is not committed until a model beats the hand-written points on validation; rerun in week 6.
+- **Tests always use the hand-written points** through an autouse fixture that sets `scorer.WEIGHTS = None`.
 - **Feed downloads are bounded and atomic:** 60 s timeout, 20 MB cap, write to `.part` then rename.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
@@ -94,18 +104,28 @@ These feed the "Known limitations" section of the README.
 - Daily until release: `python -m scripts.download_feeds`, then `python -m scripts.collect_fresh data/raw/phishing_army.txt data/raw/openphish.txt data/raw/vn_badsite.txt data/samples_phishing.txt`. Weekly: `python -m scripts.update_tranco`. Automated in step 14.
 - Step 9 (idea, measure before adding): a public domain resolving to an internal address is anomalous and could score (possible DNS rebinding); legitimate developer domains (`localtest.me`, `lvh.me`, `*.nip.io`) would be false alarms.
 - Step 9 (idea): for allowlisted domains, try reducing the domain-level lookalike points instead of skipping them, and keep whichever measures better on the validation set. Print false alarms from the validation split, not the test split, while tuning.
-- Step 9: `level_of()` in the guide uses Vietnamese names; extend `score_to_level()` with red/yellow thresholds instead. Reset `WEIGHTS` for tests with a pytest fixture in `tests/conftest.py`.
+- **After step 9: Vietnamese phishing sources.** Fresh Vietnamese samples are the main gap (4 `.vn` entries in the first fresh test set). Checked on 2026-10-23:
+  - ChongLuaDao: `chongluadao.vn` is online with a public denylist page, but the old API (`api.chongluadao.vn`) no longer resolves and the GitHub mirrors (vn-badsite-filter, elliotwutingfeng/ChongLuaDao-Phishing-Blocklist) are frozen. Ask them for official data access; do not scrape the site without permission. The frozen lists remain usable as "old" phishing (vn-badsite-filter is CC0/MIT; check the other repo's license).
+  - tinnhiemmang.vn (NCSC): manual lookup only, no public API.
+  - hostsVN and ABPVN are active, but they are ad-blocking lists: their `.vn` entries are ad servers, not phishing. Using them as phishing labels would poison the data.
+  - hagezi `fake` list: about 17,500 domains, only 1 Vietnam-related.
+  - Most promising: manual collection into `data/samples_phishing.txt` (scam-warning groups, news), and Certificate Transparency queries for Vietnamese brand names (crt.sh) to find new lookalike domains. CT gives unlabeled candidates that need checking; it stays in January as planned.
+  - Decision (2026-10-23): right after step 9, contact ChongLuaDao to ask for research access to their data. Everything else keeps the original schedule.
+- Step 7 decision: ask the server (hostname only) for the "uncertain" band 15-29 as well as yellow. On the fresh test set this band holds 20.2% of phishing but only 1.8% of benign pages, and it is exactly where domain age and TLS separate them; with "yellow only", those signals are never used.
+- Step 9.3 (before the week 6 rerun): look up domain age and TLS for ~500 benign and ~500 phishing hosts soon after collection and pass them as `extra`; add `benign_private.txt` (pages with paths); collect Vietnamese samples.
 - Step 7 (week 5, after step 8): rewrite the API as in the plan (`/v1/reputation?host=`, `/v1/report`, `/v1/health`, docs disabled, CORS); keep endpoints as plain `def` while checks are blocking. `Report.shown_level` must use English level names.
 - Step 10: `to_alert` must handle error results; add `alerts.jsonl` to `.gitignore`.
 - January (email tool): reuse `contains_brand` for display-name spoofing and `score_to_level` for email scoring.
 
 ## Results log
-Rule layer only (`use_blacklist=False`), benign test split vs newest 30% of phishing.
+Rule layer only (`use_blacklist=False`), benign test split. Phishing test: newest 30% until 2026-10-22, entries first seen after the first collection day from 2026-10-25.
 
 | Date | Tranco ID | Benign test | Phishing test (VN) | FPR red | FPR yellow+ | Recall red | Recall yellow+ | Recall VN yellow+ | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-21 | 262W9 | 7,503 | 51,959 (178) | 0.013% | 0.120% | 0.2% | 1.8% | 11.2% | Baseline; single collection day |
 | 2026-10-22 | 746PX | 7,503 | 51,959 (178) | 0.000% | 0.080% | 0.2% | 1.8% | 11.2% | Same phishing data, new Tranco list |
+| 2026-10-25 | GQ32K | 19,997 | 7,326 (7) | 0.000% | 0.150% | 0.1% | 1.4% | 71.4% | 80k benign; fresh-only phishing test; hand-written points |
+| 2026-10-25 | GQ32K | 19,997 | 7,326 (7) | 0.005% | 0.005% | 0.7% | 0.7% | 0.0% | Learned weights (L2 0.001, thresholds 94/94); not adopted |
 
 ## After all steps are done
 - **CI (GitHub Actions):** workflow `.github/workflows/tests.yml` that installs `requirements-dev.txt` and runs `pytest` on every push and pull request; add a "tests passing" badge to the README.
