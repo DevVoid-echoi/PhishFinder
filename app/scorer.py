@@ -83,7 +83,7 @@ def analyze(raw_url: str, use_blacklist: bool = True, weights: dict = None,
         "url": raw_url,
         "domain": u.registered_domain,
         "score": score,
-        "level": score_to_level(score),
+        "level": level,
         "reasons": sorted(reasons, key=lambda r: -r["points"]),
     }
 
