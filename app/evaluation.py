@@ -46,6 +46,14 @@ def time_split(phishing: list, test_ratio: float=0.3):
     cut = int(len(ordered) * (1-test_ratio))
     return [u for u, _ in ordered[:cut]], [u for u,_ in ordered[cut:]]
 
+def fresh_split(phishing: list): 
+    """Entries from the first collection day are "old" (a snapshot of everything already
+    known); entries first seen on later days are genuinely fresh and form the test set."""
+    first_day = min(d for _, d in phishing)
+    old = sorted(u for u, d in phishing if d == first_day)
+    fresh = sorted(u for u, d in phishing if d != first_day)
+    return old, fresh
+
 def random_split(items: list, test_ratio: float = 0.3, seed: int = 42):
     shuffled = items[:]
     random.Random(seed).shuffle(shuffled)
@@ -73,10 +81,10 @@ def evaluate(benign: list, phishing: list, analyze_fn) -> dict:
         "false_positives": [(u, level) for u, level in benign_levels if level in WARN],
     }
 
-def print_report(r: dict) -> None:
+def print_report(r: dict, max_false_alarms: int = 50) -> None:
     print(f"Benign: {r['n_benign']:,}   Phishing: {r['n_phishing']:,} (Vietnamese: {r['n_phishing_vn']:,})")
     print(f"False alarms  red: {r['fpr_red']:.3%}   yellow or red: {r['fpr_any']:.3%}")
     print(f"Detected      red: {r['recall_red']:.1%}   yellow or red: {r['recall_any']:.1%}"
           f"   Vietnamese, yellow or red: {r['recall_any_vn']:.1%}")
-    for url, level in r["false_positives"][:50]:
+    for url, level in r["false_positives"][:max_false_alarms]:
         print(f"  FALSE ALARM [{level}] {url}")

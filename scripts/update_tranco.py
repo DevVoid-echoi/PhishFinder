@@ -1,7 +1,7 @@
 """Download the latest Tranco list and derive the allowlist and the benign evaluation set.
 
 - data/tranco_top.csv   ranks 1-10,000      allowlist (step 8e)
-- data/eval/benign.txt  ranks 10,001-40,000 benign evaluation set (step 6b); the top
+- data/eval/benign.txt  ranks 10,001-90,000 benign evaluation set (step 6b); the top
                         10,000 are excluded, because they are allowlisted and would
                         make the false-positive rate look better than it is
 - data/eval/tranco_id.txt  list ID, so results can be reproduced
