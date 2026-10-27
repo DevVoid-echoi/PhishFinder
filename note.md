@@ -45,7 +45,7 @@ These feed the "Known limitations" section of the README.
 ### Reputation (`app/online.py`)
 - **No domain age for `.vn`:** there is no RDAP service for the TLD, so Vietnamese domains rely on the text rules only.
 - **Hacked old sites have a normal age.** `aaghazedosti.com` (registered 2022) hosts phishing; domain age only catches newly registered domains.
-- **Phishing domains disappear quickly.** `006901.com`, collected on 2026-10-21, returned 404 (no longer registered) a day later. Look up the step 9.3 sample soon after collection.
+- **Phishing domains disappear quickly.** `006901.com`, collected on 2026-10-21, returned 404 (no longer registered) a day later; `96fj.top`, registered on 2026-10-21, was gone by 2026-10-26. Look up the step 9.3 sample soon after collection.
 - **RDAP servers rate-limit and reset connections** (Verisign reset one request, then answered). The API in step 7 must cache results instead of querying on every request; any failure already gives no finding.
 - **TLS: free certificates are not a signal; new ones are.** Only certificates issued in the last 7 days score (20). First live check: 4 of 15 fresh phishing hosts had certificates issued one day earlier.
 - **TLS: invalid certificates score 30,** which also flags legitimate sites with expired or misconfigured certificates.
@@ -62,9 +62,10 @@ These feed the "Known limitations" section of the README.
 - **The allowlist cannot fix these on the benign test set** by design: it covers ranks 1-10,000 while the benign set uses 10,001-40,000.
 
 ### API (`app/main.py`)
-- **Current `/check` accepts a full URL, which conflicts with the production plan.** Paths and query strings can carry reset tokens, emails or order IDs. To be replaced in step 7 by a hostname-only `/v1/reputation`; do not deploy the current version.
-- **No authentication or rate limiting yet.** The server must stay bound to `127.0.0.1` (the uvicorn default) until phase 4.
-- **`/docs` is always enabled.** Fine for development; should be disabled or protected when deployed.
+- **No rate limiting in the app.** CORS only stops other web pages; scripts can call the API freely, so rate limiting belongs at the API Gateway (step 14). Until then, keep the server bound to `127.0.0.1`.
+- **The cache lives in process memory.** It is lost on restart and not shared between instances (e.g. Lambda cold starts); acceptable at beta scale.
+- **Reports are only written to the log** (`REPORT verdict level host version`); they must be read by hand daily in step 15 and moved to a database later.
+- **TLS worst case is about 10 s per uncached host,** which the extension must tolerate (show the local result first, update when the server answers).
 
 ## Decisions
 - **Reasons and level names are in English** (`dangerous`, `suspicious`, `likely_safe`), unlike the Vietnamese examples in the guide. Any new code (alerts, email analysis) must use `score_to_level()` instead of repeating the thresholds.
@@ -72,9 +73,14 @@ These feed the "Known limitations" section of the README.
 - **Single parser path.** `tldextract` is a required dependency; the guide's hand-written fallback was dropped so results cannot differ between machines.
 - **Test runner is pytest.** Install with `pip install -r requirements-dev.txt`, run with `python -m pytest` (avoids picking up a global pytest). All tests use pytest style (plain `assert`, `parametrize`, fixtures); the last unittest-style file was converted in step 8d.
 - **Dependencies are split and list top-level packages only.** `requirements.txt` holds runtime packages (`fastapi`, `tldextract`, `uvicorn`); `requirements-dev.txt` adds test tools (`pytest`, `httpx2`). `pip freeze` is no longer used, so dev tools cannot leak into the runtime file. Trade-off: transitive dependencies are not pinned; a lock file (pip-tools or uv) would fix this.
-- **HTTP status codes carry meaning.** `/check` returns 200 with a result, 400 for a URL without a hostname, and 422 for schema errors (missing, empty, wrong type, longer than 2048 chars), instead of 200 with an error body.
+- **The production API accepts hostnames only** (`GET /v1/reputation?host=`): the extension strips the URL to its hostname on the user's machine before sending, and the server rejects anything else with 400 (full URLs, IPs, ports, Unicode). Data that is never sent cannot leak through gateway or access logs. The old full-URL `/check` endpoint was removed.
+- **HTTP status codes carry meaning:** 400 for a value that is not a valid hostname, 422 for schema errors (missing field, wrong pattern), never 200 with an error body.
+- **Endpoints are versioned (`/v1/`)** so old extension versions keep working when the format changes.
+- **`/docs` and `/openapi.json` are disabled** unless `PHISHFINDER_DEV=1`; CORS allows only the origins in `EXTENSION_ORIGIN` (empty by default).
+- **Logs hold counts, not hostnames,** for reputation lookups: a hostname next to a client IP is browsing history. Reports do log the validated hostname, which cannot inject log lines; `extension_version` is restricted to digits and dots for the same reason.
+- **The cache is thread-safe** (FastAPI runs `def` endpoints on worker threads), and domain age is cached per registered domain, so subdomains share one RDAP lookup.
+- **External check failures are logged, not swallowed** (`_safe` logs the error type, never the host).
 - **`httpx2` instead of `httpx` for `TestClient`.** Starlette 1.8 deprecates `httpx` for its test client.
-- **`/check` uses `POST` with a JSON body**, so the checked URL never appears in request paths or access logs.
 - **Hostnames are converted to punycode like browsers do**, so the Python core sees the same input as the extension.
 - **Deterministic output.** Wherever a set is involved (e.g. the matched alias), pick with `sorted(...)`, so the JavaScript port (step 12) can match the Python results exactly.
 - **Evaluation sources.** vn-badsite-filter is frozen since 2025-05 (upstream `api.chongluadao.vn` shut down), so it serves as blocklist (16,843 domains, CC0/MIT) and "old" phishing only. Fresh phishing comes from phishing.army (aggregated, refreshed every 4 hours, free for personal use) and OpenPhish (community feed, full URLs).
@@ -113,9 +119,8 @@ These feed the "Known limitations" section of the README.
   - Decision (2026-10-23): right after step 9, contact ChongLuaDao to ask for research access to their data. Everything else keeps the original schedule.
   - **Contacted ChongLuaDao on 2026-10-25** (awaiting a reply). Asked whether they provide phishing domains or URLs for non-commercial research, under which terms, and whether entries carry a first-seen date. Offered three usage levels for them to choose from: (a) measurement only, never shipped; (b) lookup on our server, the extension sends hostnames only; (c) bundled in the extension with attribution. We follow whichever level they allow, even (a) only. If they allow only (b), the list is consulted only for hostnames the server is asked about (currently yellow results).
   - Evidence given: of 7,326 fresh phishing entries (2026-10-22..25) none mentions a Vietnamese bank or e-wallet brand and only 7 have a `.vn` suffix (0.10%); counted on domain names only, page content was not checked. `api.chongluadao.vn` did not resolve on 2026-10-21, 23 and 25.
-- Step 7 decision: ask the server (hostname only) for the "uncertain" band 15-29 as well as yellow. On the fresh test set this band holds 20.2% of phishing but only 1.8% of benign pages, and it is exactly where domain age and TLS separate them; with "yellow only", those signals are never used.
+- Step 12/13 decision (the API needs no change): ask the server (hostname only) for the "uncertain" band 15-29 as well as yellow. On the fresh test set this band holds 20.2% of phishing but only 1.8% of benign pages, and it is exactly where domain age and TLS separate them; with "yellow only", those signals are never used.
 - Step 9.3 (before the week 6 rerun): look up domain age and TLS for ~500 benign and ~500 phishing hosts soon after collection and pass them as `extra`; add `benign_private.txt` (pages with paths); collect Vietnamese samples.
-- Step 7 (week 5, after step 8): rewrite the API as in the plan (`/v1/reputation?host=`, `/v1/report`, `/v1/health`, docs disabled, CORS); keep endpoints as plain `def` while checks are blocking. `Report.shown_level` must use English level names.
 - Step 10: `to_alert` must handle error results; add `alerts.jsonl` to `.gitignore`.
 - January (email tool): reuse `contains_brand` for display-name spoofing and `score_to_level` for email scoring.
 
