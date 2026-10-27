@@ -37,7 +37,7 @@ git clone https://github.com/DevVoid-echoi/PhishFinder.git
 cd PhishFinder
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m pytest                                    # 145 tests, no network access
+python -m pytest                                    # 175 tests, no network access
 ```
 
 Check a URL, a domain's registration age, or its TLS certificate:
@@ -82,7 +82,7 @@ Brands, official domains and abbreviations live in [`data/brands.json`](data/bra
 - *Blocklist:* 16,843 Vietnamese-targeted domains (vn-badsite-filter, CC0/MIT) and OpenPhish URLs. A hit always scores 100.
 - *Allowlist:* the Tranco top 10,000 skip lookalike checks on their own name only. Subdomain checks still run, because 752 of the collected phishing pages sit on popular hosting platforms (`eu.cc`, `mybluehost.me`...); skipping them would let `vietcombank-xacthuc.wordpress.com` through. This cut false alarms on the top 10,000 sites from 35 to 10.
 
-**Server checks** (hostname only, never the full URL):
+**Server checks** (hostname only, never the full URL). The extension strips each URL to its hostname before sending; `GET /v1/reputation?host=` rejects anything else, so paths and query strings, which can carry reset tokens or emails, never leave the user's machine:
 - *Domain age* through RDAP, the JSON successor of WHOIS: under 30 days scores 35. In a first live check, 6 of 8 freshly reported phishing domains were under 30 days old.
 - *TLS certificate:* invalid certificates score 30, certificates issued in the last 7 days score 20. The connection is protected against SSRF: every resolved address must be public (`is_global`), and the client connects to the checked IP with the hostname as SNI, so DNS rebinding cannot redirect it to an internal address.
 
@@ -115,7 +115,7 @@ Targets before release: red false alarms at or below 0.05% and yellow at or belo
 - **Server-side checks can be cloaked:** an attacker can answer the server differently from victims. No single server signal is trusted alone, and no signal ever lowers a score.
 - **Hacked old sites** have a normal domain age and certificate, so only text rules and lists can catch them.
 - **No `.vn` domain age:** there is no RDAP service for the TLD.
-- **Current API** (`app/main.py`) accepts full URLs and is for development only. The production API will accept hostnames only.
+- **No rate limiting in the app yet:** it will sit behind an API gateway in production; the cache is in memory and reports are only logged.
 
 The full list, with measurements, is kept in [`note.md`](note.md).
 
@@ -132,17 +132,18 @@ app/
   reputation.py    TLS certificate check with SSRF protection
   evaluation.py    dataset loading, splits, metrics
   calibrate.py     logistic regression and threshold selection
-  main.py          development HTTP API (FastAPI)
+  api_core.py      hostname validation, thread-safe cache, reputation lookup
+  main.py          production HTTP API (FastAPI): /v1/reputation, /v1/report, /v1/health
 scripts/           download_feeds, collect_fresh, update_tranco, evaluate
 data/              brands.json, Tranco list ID, hand-checked Vietnamese sites
-tests/             145 pytest tests; network access is blocked in every test
+tests/             175 pytest tests; network access is blocked in every test
 ```
 
 Downloaded feeds, the collected phishing set and the Tranco-derived files are not committed (personal-use terms and size). The scripts above recreate everything except the first-seen dates, which only accumulate over time.
 
 ## Roadmap
 
-1. **Production API:** hostname-only reputation endpoint, link-shortener expansion, false-alarm reports.
+1. **Production API:** link-shortener expansion (the hostname-only reputation and report endpoints are done).
 2. **Page analysis:** rules and AI on page content, opt-in only.
 3. **SOC alerts:** MITRE ATT&CK-tagged alerts in JSON Lines for SIEM ingestion.
 4. **Chrome extension:** the same rules in JavaScript, verified against Python test vectors; private beta, then Chrome Web Store.
