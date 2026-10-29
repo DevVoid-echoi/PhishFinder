@@ -26,6 +26,12 @@ def is_public_address(ip: str) -> bool:
 def resolve_public_ips(hostname: str) -> list:
     """All addresses of hostname, or [] if any of them is not public."""
     try:
+        ip = ipaddress.ip_address(hostname) # an IP literal needs no DNS lookup
+    except ValueError:
+        pass
+    else:
+        return [str(ip)] if is_public_address(str(ip)) else []
+    try:
         infos = socket.getaddrinfo(hostname, PORT, type=socket.SOCK_STREAM)
     except(socket.gaierror, UnicodeError):
         return []
