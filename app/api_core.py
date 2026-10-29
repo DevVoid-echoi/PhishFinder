@@ -8,7 +8,9 @@ import logging
 import re
 import threading
 import time
+from urllib.parse import urlsplit
 
+from app.heuristics import SHORTENERS
 from app.parser import parse_url
 
 log = logging.getLogger("phishfinder")
@@ -29,6 +31,18 @@ def normalize_host(raw: str) -> str:
     if not HOST_RE.match(host):
         raise ValueError("Invalid hostname (Unicode names must be sent in punycode, xn--)")
     return host
+
+def normalize_short_url (raw: str) -> str:
+    """Accept links of known URL shorteners only. The path of a short link is a public code,
+    not personal data, so it may be sent to the server; anything else would turn /v1/expand
+    into an open proxy that fetches any page for anyone."""
+    url = raw.strip()
+    p = urlsplit(url)
+    if len(url) > 200 or p.scheme not in ("http","https") or p.username or p.password or p.port:
+        raise ValueError("Invalid short link")
+    if (p.hostname or "") not in SHORTENERS:
+        raise ValueError("Only links of known URL shorteners are expanded")
+    return url
 
 class TTLCache:
     """In-memory cache with expiry, safe to use from FastAPI's worker threads."""
