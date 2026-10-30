@@ -67,6 +67,13 @@ These feed the "Known limitations" section of the README.
 - **Reports are only written to the log** (`REPORT verdict level host version`); they must be read by hand daily in step 15 and moved to a database later.
 - **TLS worst case is about 10 s per uncached host,** which the extension must tolerate (show the local result first, update when the server answers).
 
+### Short-link expansion (`app/page_fetch.py`, `/v1/expand`)
+- **Only HTTP redirects are followed** (301, 302, 303, 307, 308). Redirects done with JavaScript or `<meta http-equiv="refresh">` end the chain early, so `final` can be an intermediate page.
+- **HEAD and GET can differ.** Some shorteners answer HEAD with 405 or a different target; HEAD is kept because it downloads no page body.
+- **Cloaking:** a shortener or landing page can send the server (data-centre IP, no cookies) somewhere harmless while victims get the phishing page.
+- **`SHORTENERS` lists 8 international services only;** Vietnamese shorteners are not covered yet, and any other link is refused with 400.
+- **The expansion request is visible to the shortener,** which learns that someone checked the link (not who: the request comes from the server).
+
 ## Decisions
 - **Reasons and level names are in English** (`dangerous`, `suspicious`, `likely_safe`), unlike the Vietnamese examples in the guide. Any new code (alerts, email analysis) must use `score_to_level()` instead of repeating the thresholds.
 - **TPBank:** only `tpb.vn` is listed as official (verified); `tpbank.vn` is intentionally not allowlisted.
@@ -102,7 +109,11 @@ These feed the "Known limitations" section of the README.
 - **The phishing test set is every entry first seen after the first collection day;** the first day is a snapshot of everything already known and is used for training and validation only.
 - **Learned weights are not used yet.** On the fresh test set they detect less than the hand-written points (0.7% vs 1.4%; Vietnamese 0/7 vs 5/7) while both meet the false-alarm targets. `data/weights.json` is not committed until a model beats the hand-written points on validation; rerun in week 6.
 - **Tests always use the hand-written points** through an autouse fixture that sets `scorer.WEIGHTS = None`.
-- **Feed downloads are bounded and atomic:** 60 s timeout, 20 MB cap, write to `.part` then rename.
+- **Feed downloads are bounded and atomic:** 60 s timeout, 20 MB cap, write to `.part` then rename. Each download is retried up to 3 times (waits 5 s, then 10 s) after phishing.army timed out once during the TLS handshake (2026-10-29); a feed that still fails keeps its previous file, so a day with far fewer new entries than usual (normally about 1,500-2,600) means the collection must be rerun the same day.
+- **`/v1/expand` takes full URLs, but only for known shorteners** (`normalize_short_url`: http/https, no userinfo, no port, at most 200 characters, host in `SHORTENERS`). A short link's path is the whole link, and it carries no personal data the shortener does not already have.
+- **Every redirect hop is checked again** before connecting: scheme (http/https), port (80/443 only) and that every resolved address is public. The connection goes to the checked IP (hostname kept for Host and SNI), so neither a redirect to `169.254.169.254` nor a name that resolves internally, nor DNS rebinding between check and connect, can reach internal services.
+- **Limits:** 5 s per request, 15 s overall, 5 hops, HEAD by default, 1 MB body cap and `text/html` only for GET. The response includes the full `chain` and the last `status`; results are cached for 6 hours.
+- **Pinned connections override `connect()` with `@override`,** so a misspelled method name (it happened: `connection`) fails at type-check time instead of silently connecting by hostname.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
 ## To address in upcoming steps
@@ -121,6 +132,7 @@ These feed the "Known limitations" section of the README.
   - Evidence given: of 7,326 fresh phishing entries (2026-10-22..25) none mentions a Vietnamese bank or e-wallet brand and only 7 have a `.vn` suffix (0.10%); counted on domain names only, page content was not checked. `api.chongluadao.vn` did not resolve on 2026-10-21, 23 and 25.
 - Step 12/13 decision (the API needs no change): ask the server (hostname only) for the "uncertain" band 15-29 as well as yellow. On the fresh test set this band holds 20.2% of phishing but only 1.8% of benign pages, and it is exactly where domain age and TLS separate them; with "yellow only", those signals are never used.
 - Step 9.3 (before the week 6 rerun): look up domain age and TLS for ~500 benign and ~500 phishing hosts soon after collection and pass them as `extra`; add `benign_private.txt` (pages with paths); collect Vietnamese samples.
+- Step 7c: page analysis reuses `follow(..., method="GET")`; add Vietnamese shorteners to `SHORTENERS` once they are checked.
 - Step 10: `to_alert` must handle error results; add `alerts.jsonl` to `.gitignore`.
 - January (email tool): reuse `contains_brand` for display-name spoofing and `score_to_level` for email scoring.
 
