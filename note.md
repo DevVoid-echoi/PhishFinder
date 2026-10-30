@@ -146,6 +146,10 @@ Rule layer only (`use_blacklist=False`), benign test split. Phishing test: newes
 | 2026-10-25 | GQ32K | 19,997 | 7,326 (7) | 0.000% | 0.150% | 0.1% | 1.4% | 71.4% | 80k benign; fresh-only phishing test; hand-written points |
 | 2026-10-25 | GQ32K | 19,997 | 7,326 (7) | 0.005% | 0.005% | 0.7% | 0.7% | 0.0% | Learned weights (L2 0.001, thresholds 94/94); not adopted |
 
-## After all steps are done
-- **CI (GitHub Actions):** workflow `.github/workflows/tests.yml` that installs `requirements-dev.txt` and runs `pytest` on every push and pull request; add a "tests passing" badge to the README.
-- **Repository ruleset for `main`:** require a pull request before merging, require the CI status check to pass, block force pushes and branch deletion.
+## CI/CD schedule
+Decided 2026-10-30: CI starts now instead of after the last step, so every later step (alerts, page analysis, the JavaScript port) is merged behind passing tests.
+- **Now (before step 10 is merged):** `.github/workflows/tests.yml` runs `pytest` on Python 3.12 and 3.14 for every push to `main` and every pull request; badge in the README. Actions are pinned to commit SHAs, the token is read-only, and Dependabot proposes action updates weekly. Python 3.12 is the minimum because `page_fetch.py` uses `typing.override` (the README said 3.11).
+- **Right after the first green run:** repository ruleset for `main`: require a pull request, require the `tests` checks to pass, block force pushes and branch deletion. Status checks can only be selected after they have run once.
+- **Step 12 (week 7):** add a JavaScript job (`node --test`) and the Python/JavaScript test vectors to the same workflow, so a rule changed on one side only fails CI.
+- **Step 14 (week 8), CD:** `lists.yml` builds `lists.json` every 3 hours, publishes it to S3 only if the Python and JavaScript tests pass on the new data, and signs in to AWS with OIDC (no stored keys, a role that can write one file). The API is deployed to Lambda from `main` the same way, after the tests. Automate the daily phishing collection here too; `phishing.csv` must go to private storage, never into the repository.
+- **Steps 15-16:** the extension zip is built by CI as a workflow artifact; uploading to the Chrome Web Store stays manual because every version goes through review.
