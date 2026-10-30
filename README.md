@@ -1,5 +1,7 @@
 # PhishFinder
 
+[![tests](https://github.com/DevVoid-echoi/PhishFinder/actions/workflows/tests.yml/badge.svg)](https://github.com/DevVoid-echoi/PhishFinder/actions/workflows/tests.yml)
+
 A phishing link detector aimed at scams that target Vietnamese users: fake bank, e-wallet and e-commerce domains such as `vietcombank-xacthuc.com`, `sh0pee.vn` or `mоmо.vn` (with a Cyrillic `о`).
 
 Every verdict comes with the rules that fired and why, and every change to the rules is measured against a labelled dataset before it is kept. The core runs on Python's standard library plus `tldextract`; a Chrome extension that runs the same rules in the browser is planned (see [Roadmap](#roadmap)).
@@ -30,7 +32,7 @@ Levels: `dangerous` (60 and above), `suspicious` (30 to 59), `likely_safe` (belo
 
 ## Quick start
 
-Requires Python 3.11 or later.
+Requires Python 3.12 or later.
 
 ```bash
 git clone https://github.com/DevVoid-echoi/PhishFinder.git
