@@ -7,6 +7,7 @@ the request goes to the checked IP (hostname kept for Host and SNI), never to th
 import http.client
 import socket
 import time
+from typing import override
 from urllib.parse import urljoin, urlsplit
 
 from app.reputation import resolve_public_ips
@@ -22,6 +23,7 @@ class _PinnedHTTPConnection(http.client.HTTPConnection):
         super().__init__(host, **kwargs)
         self._ip = ip
 
+    @override
     def connect(self):
         self.sock = socket.create_connection((self._ip, self.port), self.timeout)
 
@@ -30,6 +32,7 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
         super().__init__(host, **kwargs)
         self._ip = ip
 
+    @override
     def connect(self):
         sock = socket.create_connection((self._ip, self.port), self.timeout)
         self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
