@@ -3,6 +3,7 @@
 Run: python -m scripts.download_feeds
 """
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -29,16 +30,25 @@ def download(url: str, dest: Path) -> int:
     tmp.replace(dest)
     return len(data)
 
+def download_with_retry(url: str, dest: Path, attempts: int = 3) -> int:
+    for attempt in range(1, attempts + 1):
+        try:
+            return download(url, dest)
+        except (OSError, ValueError):
+            if attempt == attempts:
+                raise
+            time.sleep(5 * attempt)
+
 def main() -> int:
     RAW.mkdir(parents=True, exist_ok=True)
     failed = 0
     for name, url in FEEDS.items():
         try:
-            size = download(url, RAW / name)
-            print(f"OK   {name:20} {size:>10,} bytes")
+            size = download_with_retry(url, RAW / name)
+            print(f"OK    {name:20} {size:>10,} bytes")
         except (OSError, ValueError) as e:
             failed += 1
-            print(f"FAIL    {name:20} {e}")
+            print(f"FAIL  {name:20} {e}  (collect_fresh will reuse the previous file)")
     return 1 if failed == len(FEEDS) else 0
 
 if __name__ == "__main__":

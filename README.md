@@ -4,7 +4,7 @@ A phishing link detector aimed at scams that target Vietnamese users: fake bank,
 
 Every verdict comes with the rules that fired and why, and every change to the rules is measured against a labelled dataset before it is kept. The core runs on Python's standard library plus `tldextract`; a Chrome extension that runs the same rules in the browser is planned (see [Roadmap](#roadmap)).
 
-> **Status:** core detection, measurement and reputation checks are done (October 2026). The production API, the browser extension and the public release are in progress.
+> **Status:** core detection, measurement and reputation checks are done (October 2026). The production API is done; SOC alerts, page analysis, the browser extension and the public release are in progress.
 
 ## Example
 
@@ -37,7 +37,7 @@ git clone https://github.com/DevVoid-echoi/PhishFinder.git
 cd PhishFinder
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m pytest                                    # 175 tests, no network access
+python -m pytest                                    # 194 tests, no network access
 ```
 
 Check a URL, a domain's registration age, or its TLS certificate:
@@ -85,6 +85,7 @@ Brands, official domains and abbreviations live in [`data/brands.json`](data/bra
 **Server checks** (hostname only, never the full URL). The extension strips each URL to its hostname before sending; `GET /v1/reputation?host=` rejects anything else, so paths and query strings, which can carry reset tokens or emails, never leave the user's machine:
 - *Domain age* through RDAP, the JSON successor of WHOIS: under 30 days scores 35. In a first live check, 6 of 8 freshly reported phishing domains were under 30 days old.
 - *TLS certificate:* invalid certificates score 30, certificates issued in the last 7 days score 20. The connection is protected against SSRF: every resolved address must be public (`is_global`), and the client connects to the checked IP with the hostname as SNI, so DNS rebinding cannot redirect it to an internal address.
+- *Short-link expansion:* `GET /v1/expand?url=` follows a known shortener (`bit.ly`, `tinyurl.com`...) to its destination and returns the whole redirect chain. It is the only endpoint that takes a full URL, and it refuses any other link. Every hop is checked again before connecting: http/https only, ports 80 and 443 only, public addresses only, pinned to the checked IP; at most 5 hops in 15 seconds.
 
 ## Measurement
 
@@ -130,24 +131,24 @@ app/
   scorer.py        score, level and reasons; optional learned weights
   online.py        domain age via RDAP
   reputation.py    TLS certificate check with SSRF protection
+  page_fetch.py    redirect following with SSRF checks on every hop
   evaluation.py    dataset loading, splits, metrics
   calibrate.py     logistic regression and threshold selection
   api_core.py      hostname validation, thread-safe cache, reputation lookup
-  main.py          production HTTP API (FastAPI): /v1/reputation, /v1/report, /v1/health
+  main.py          production HTTP API (FastAPI): /v1/reputation, /v1/expand, /v1/report, /v1/health
 scripts/           download_feeds, collect_fresh, update_tranco, evaluate
 data/              brands.json, Tranco list ID, hand-checked Vietnamese sites
-tests/             175 pytest tests; network access is blocked in every test
+tests/             194 pytest tests; network access is blocked in every test
 ```
 
 Downloaded feeds, the collected phishing set and the Tranco-derived files are not committed (personal-use terms and size). The scripts above recreate everything except the first-seen dates, which only accumulate over time.
 
 ## Roadmap
 
-1. **Production API:** link-shortener expansion (the hostname-only reputation and report endpoints are done).
+1. **SOC alerts:** MITRE ATT&CK-tagged alerts in JSON Lines for SIEM ingestion.
 2. **Page analysis:** rules and AI on page content, opt-in only.
-3. **SOC alerts:** MITRE ATT&CK-tagged alerts in JSON Lines for SIEM ingestion.
-4. **Chrome extension:** the same rules in JavaScript, verified against Python test vectors; private beta, then Chrome Web Store.
-5. **Later:** email header analysis (SPF, DKIM, DMARC) for analysts, Certificate Transparency monitoring.
+3. **Chrome extension:** the same rules in JavaScript, verified against Python test vectors; private beta, then Chrome Web Store.
+4. **Later:** email header analysis (SPF, DKIM, DMARC) for analysts, Certificate Transparency monitoring.
 
 ## License
 

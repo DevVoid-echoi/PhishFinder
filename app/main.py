@@ -10,8 +10,9 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app.api_core import TTLCache, domain_reputation, normalize_host
+from app.api_core import TTLCache, domain_reputation, normalize_host, normalize_short_url
 from app.online import check_domain_age
+from app.page_fetch import follow
 from app.reputation import check_tls
 
 DEV = os.environ.get("PHISHFINDER_DEV") == "1"
@@ -25,8 +26,9 @@ app = FastAPI(title="PhishFinder", version="1.0.0",
 EXTENSION_ORIGINS = [o for o in os.environ.get("EXTENSION_ORIGIN", "").split(",") if o]
 app.add_middleware(CORSMiddleware, allow_origins=EXTENSION_ORIGINS, allow_methods=["GET", "POST"])
 
-cache = TTLCache(ttl_seconds=6 * 3600)
-age_cache = TTLCache(ttl_seconds=24*3600)
+cache = TTLCache(ttl_seconds= 6 * 3600)
+age_cache = TTLCache(ttl_seconds= 24 * 3600)
+expand_cache = TTLCache(ttl_seconds= 6 * 3600, max_items=5000)
 log = logging.getLogger("phishfinder")
 
 
@@ -44,6 +46,22 @@ def reputation(host: str = Query(..., max_length=253)):
     # Count only: a hostname next to a client IP would be that user's browsing history
     log.info("reputation cached=%s findings=%d", result["cached"], len(result["reasons"]))
     return result
+
+@app.get("/v1/expand")
+def expand(url: str = Query(..., max_length=200)):
+    """Where does a short link lead? Only links of known shorteners are accepted."""
+    try:
+        url = normalize_short_url(url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    cached = expand_cache.get(url)
+    if cached is not None:
+        return {**cached, "cached": True}
+    r = follow(url, method="HEAD")
+    result = {"final": r["final"], "chain": r["chain"], "status": r.get("status"), "error": r["error"]}
+    expand_cache.set(url, result)
+    log.info("expand hops=%d ok=%s", len(r["chain"]) - 1, r["final"] is not None)
+    return {**result, "cached": False}
 
 class Report(BaseModel):
     host: str = Field(..., max_length=253)

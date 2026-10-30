@@ -62,3 +62,22 @@ def test_docs_are_disabled_by_default(client):
 def test_cors_rejects_unknown_origins(client):
     response = client.get("/v1/health", headers={"Origin": "https://evil.example"})
     assert "access_control_allow_origin" not in response.headers
+
+def test_expand(client, monkeypatch):
+    calls = []
+
+    def fake_follow(url, method):
+        calls.append((url, method))
+        return {"chain": [url, "https://evil.example/login"], "final": "https://evil.example/login", "error": None}
+
+    monkeypatch.setattr(main, "follow", fake_follow)
+    monkeypatch.setattr(main, "expand_cache", main.TTLCache())
+
+    r1 = client.get("/v1/expand", params={"url": "https://bit.ly/abc"}).json()
+    r2 = client.get("/v1/expand", params={"url": "https://bit.ly/abc"}).json()
+    assert r1["final"] == "https://evil.example/login"
+    assert (r1["cached"], r2["cached"]) == (False, True)
+    assert calls == [("https://bit.ly/abc", "HEAD")]
+
+def test_expand_refuses_other_links(client):
+    assert client.get("/v1/expand", params={"url": "https://evil.example/login"}).status_code == 400
