@@ -3,6 +3,7 @@
 The extension decides locally; the server only does what a browser cannot:
 domain age (RDAP) and TLS checks, for a hostname, never a full URL.
 """
+import json
 import logging
 import os
 
@@ -10,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from app.alert import to_alert
 from app.api_core import TTLCache, domain_reputation, normalize_host, normalize_short_url
 from app.online import check_domain_age
 from app.page_fetch import follow
@@ -77,4 +79,13 @@ def report(r: Report):
         raise HTTPException(status_code=400, detail=str(e))
     # First version: read the log daily. The host is validated, so it cannot inject log lines.
     log.warning("REPORT %s %s %s v%s", r.verdict, r.shown_level, host, r.extension_version)
+    if r.verdict == "confirmed_phishing":
+        # A user report is never more than medium: users can be wrong or report a rival on purpose
+        alert = to_alert(
+            {"url": host, "domain": host, "level": "suspicious",
+             "reasons": [{"rule": "user_report", "points": 0,
+                          "reason": f"Extension user confirmed phishing (shown as {r.shown_level})"}]},
+            observables=[{"type": "domain", "value": host}],
+        )
+        log.warning("ALERT %s", json.dumps(alert, ensure_ascii=False))
     return {"received": True}
