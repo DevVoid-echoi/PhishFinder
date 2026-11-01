@@ -1,4 +1,4 @@
-"""Follow redirects (step 7b) and download pages (step 7c), with SSRF protection on EVERY hop.
+"""Follow redirects and download pages, with SSRF protection on EVERY hop.
 
 A valid bit.ly link can redirect to http://169.254.169.254/, the cloud metadata service
 that hands out the server's credentials. So every hop is resolved and checked again, and

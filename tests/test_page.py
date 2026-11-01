@@ -1,4 +1,4 @@
-"""Tests for following redirects safely (step 7b). A fake HTTP server runs on 127.0.0.1."""
+"""Tests for following redirects safely. A fake HTTP server runs on 127.0.0.1."""
 import socket
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -12,7 +12,7 @@ from app.reputation import resolve_public_ips
 
 
 class Handler(BaseHTTPRequestHandler):
-    routes = {"/short": "/step2", "/step2": "/landing", "/loop": "/loop",
+    routes = {"/short": "/hop2", "/hop2": "/landing", "/loop": "/loop",
               "/metadata": "http://169.254.169.254/latest/meta-data/",
               "/rebind": "http://rebind.test/landing", "/port": "http://fake.test:6379/",
               "/js": "javascript:alert(1)"}

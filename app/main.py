@@ -22,7 +22,7 @@ app = FastAPI(title="PhishFinder", version="1.0.0",
               docs_url="/docs" if DEV else None, redoc_url=None, openapi_url="/openapi.json" if DEV else None)
 
 # Only the extension may call the API from a browser (its ID is known after publishing).
-# CORS does not stop scripts, so rate limiting is still needed at the gateway (step 14).
+# CORS does not stop scripts, so rate limiting is still needed at the gateway.
 EXTENSION_ORIGINS = [o for o in os.environ.get("EXTENSION_ORIGIN", "").split(",") if o]
 app.add_middleware(CORSMiddleware, allow_origins=EXTENSION_ORIGINS, allow_methods=["GET", "POST"])
 

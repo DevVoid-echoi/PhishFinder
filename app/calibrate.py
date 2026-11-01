@@ -13,7 +13,7 @@ from app.scorer import run_rules, sigmoid, weighted_score
 
 
 def features(url: str, extra: dict = None) -> frozenset:
-    """extra: {url: {"domain_age", "tls"}} for a sample looked up on the server (step 9.3)."""
+    """extra: {url: {"domain_age", "tls"}} for a sample looked up on the server."""
     rules = {r["rule"] for r in run_rules(parse_url(url))}
     return frozenset(rules | set((extra or {}).get(url, ())))
 

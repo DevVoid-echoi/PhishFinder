@@ -1,8 +1,8 @@
 """Combine rule findings into a 0-100 risk score and a warning level.
 
 Two modes:
-- no data/weights.json: add the hand-written points (steps 3-5)
-- data/weights.json (step 9): logistic regression on the fired rules, score = P(phishing)
+- no data/weights.json: add the hand-written points
+- data/weights.json: logistic regression on the fired rules, score = P(phishing)
 """
 import json
 import math
