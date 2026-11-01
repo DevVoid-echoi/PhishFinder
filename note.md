@@ -67,6 +67,12 @@ These feed the "Known limitations" section of the README.
 - **Reports are only written to the log** (`REPORT verdict level host version`); they must be read by hand daily in step 15 and moved to a database later.
 - **TLS worst case is about 10 s per uncached host,** which the extension must tolerate (show the local result first, update when the server answers).
 
+### SOC alerts (`app/alert.py`)
+- **Alerts in production come only from user reports,** so their only observable is a hostname and `risk_score` is `null`; `to_alert` on URL results is used from the command line for now.
+- **No deduplication.** Ten users confirming one domain give ten alerts, and `/v1/report` has no authentication, so a script could flood the log until the gateway rate limit exists.
+- **Field names are our own,** not Elastic Common Schema; a SIEM needs a small mapping until they are renamed (`url.full`, `threat.technique.id`).
+- **`status` is always `new`:** there is no workflow behind it yet.
+
 ### Short-link expansion (`app/page_fetch.py`, `/v1/expand`)
 - **Only HTTP redirects are followed** (301, 302, 303, 307, 308). Redirects done with JavaScript or `<meta http-equiv="refresh">` end the chain early, so `final` can be an intermediate page.
 - **HEAD and GET can differ.** Some shorteners answer HEAD with 405 or a different target; HEAD is kept because it downloads no page body.
@@ -114,6 +120,13 @@ These feed the "Known limitations" section of the README.
 - **Every redirect hop is checked again** before connecting: scheme (http/https), port (80/443 only) and that every resolved address is public. The connection goes to the checked IP (hostname kept for Host and SNI), so neither a redirect to `169.254.169.254` nor a name that resolves internally, nor DNS rebinding between check and connect, can reach internal services.
 - **Limits:** 5 s per request, 15 s overall, 5 hops, HEAD by default, 1 MB body cap and `text/html` only for GET. The response includes the full `chain` and the last `status`; results are cached for 6 hours.
 - **Pinned connections override `connect()` with `@override`,** so a misspelled method name (it happened: `connection`) fails at type-check time instead of silently connecting by hostname.
+- **A user report is never above `medium` and never reaches the blocklist automatically:** users can be wrong or report a rival on purpose, so a domain is added only after a manual check. `false_positive` reports create no alert.
+- **`to_alert` raises `ValueError` on an error result** instead of inventing a `low` alert, which would hide broken input among harmless logs.
+- **User reports have `risk_score: null`, not 0:** no score was computed, and a 0 would sort a `medium` alert below every other alert in a SIEM.
+- **Alerts go to the log in production** (`ALERT {json}`, one line, shipped to CloudWatch), because a Lambda file disappears on restart. `write_alert` is for local JSON Lines; `alerts.jsonl` is git-ignored since it holds checked domains and URLs.
+- **Impersonation (T1656) is keyed on exact rule names,** not a substring match, so a future rule cannot trigger it by accident.
+- **Timestamps are UTC,** because a SIEM merges logs from machines in different time zones.
+- **Plan step numbers never appear in code, comments or tests;** they mean nothing to someone reading the code. `note.md` is the only place that uses them.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
 ## To address in upcoming steps
@@ -133,7 +146,6 @@ These feed the "Known limitations" section of the README.
 - Step 12/13 decision (the API needs no change): ask the server (hostname only) for the "uncertain" band 15-29 as well as yellow. On the fresh test set this band holds 20.2% of phishing but only 1.8% of benign pages, and it is exactly where domain age and TLS separate them; with "yellow only", those signals are never used.
 - Step 9.3 (before the week 6 rerun): look up domain age and TLS for ~500 benign and ~500 phishing hosts soon after collection and pass them as `extra`; add `benign_private.txt` (pages with paths); collect Vietnamese samples.
 - Step 7c: page analysis reuses `follow(..., method="GET")`; add Vietnamese shorteners to `SHORTENERS` once they are checked.
-- Step 10: `to_alert` must handle error results; add `alerts.jsonl` to `.gitignore`.
 - January (email tool): reuse `contains_brand` for display-name spoofing and `score_to_level` for email scoring.
 
 ## Results log
