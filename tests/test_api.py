@@ -1,4 +1,5 @@
 """Tests for the production HTTP API. Server checks are replaced by stubs."""
+import json
 import pytest
 from fastapi.testclient import TestClient
 
@@ -81,3 +82,19 @@ def test_expand(client, monkeypatch):
 
 def test_expand_refuses_other_links(client):
     assert client.get("/v1/expand", params={"url": "https://evil.example/login"}).status_code == 400
+
+def test_confirmed_report_logs_a_medium_alert(client, caplog):
+    body = {**REPORT, "verdict": "confirmed_phishing"}
+    with caplog.at_level("WARNING", logger=main.log.name):
+        assert client.post("/v1/report", json=body).status_code == 200
+    line = next(m for m in caplog.messages if m.startswith("ALERT "))
+    alert = json.loads(line.removeprefix("ALERT "))
+    assert alert["severity"] == "medium"
+    assert alert["risk_score"] is None
+    assert alert["observables"] == [{"type": "domain", "value": "vcb-xacthuc.com"}]
+    assert alert["recommended_actions"] == ["Review manually before blocking"]
+
+def test_false_positive_report_logs_no_alert(client, caplog):
+    with caplog.at_level("WARNING", logger=main.log.name):
+        client.post("/v1/report", json=REPORT)
+    assert not any(m.startswith("ALERT ") for m in caplog.messages)
