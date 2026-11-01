@@ -1,6 +1,8 @@
 # PhishFinder
 
 [![tests](https://github.com/DevVoid-echoi/PhishFinder/actions/workflows/tests.yml/badge.svg)](https://github.com/DevVoid-echoi/PhishFinder/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/DevVoid-echoi/PhishFinder/graph/badge.svg)](https://codecov.io/gh/DevVoid-echoi/PhishFinder)
+[![License: MIT](https://img.shields.io/github/license/DevVoid-echoi/PhishFinder)](LICENSE)
 
 A phishing link detector aimed at scams that target Vietnamese users: fake bank, e-wallet and e-commerce domains such as `vietcombank-xacthuc.com`, `sh0pee.vn` or `mоmо.vn` (with a Cyrillic `о`).
 
