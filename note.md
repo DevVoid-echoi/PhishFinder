@@ -127,6 +127,7 @@ These feed the "Known limitations" section of the README.
 - **Impersonation (T1656) is keyed on exact rule names,** not a substring match, so a future rule cannot trigger it by accident.
 - **Timestamps are UTC,** because a SIEM merges logs from machines in different time zones.
 - **Plan step numbers never appear in code, comments or tests;** they mean nothing to someone reading the code. `note.md` is the only place that uses them.
+- **TikTok and Snapchat added to `brands.json`** (2026-11-02): TikTok Shop scams target Vietnamese users (`napxutiktok.net`, `tiktokck888.com` in the collected feeds). Official domains are kept to the main ones: `tiktok.com`, `tiktokv.com`, `tiktokcdn.com`, `tiktokshop.com`, `tiktokglobalshop.com` (same registrar as `tiktok.com`), `snapchat.com`, `snap.com` (the `snapchat.com` certificate is issued to Snap Inc. for `*.snap.com`). Validation split: the 5 TikTok/Snapchat phishing entries went from 0 to 5 detected; yellow false alarms rose from 0.180% to 0.205% (4 TikTok infrastructure domains such as `tiktokv-eu.com`, plus `tiktokmod.pro`), red unchanged at 0.005%. Unverified infrastructure domains are not added as official: a wrong official entry would exempt an attacker's domain from every lookalike check.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
 ## To address in upcoming steps

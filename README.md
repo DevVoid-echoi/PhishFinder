@@ -81,7 +81,7 @@ URL ─► parser ─► rules (in the browser) ─► score + level + reasons
 | `check_long_url` | 10 | URL longer than 100 characters |
 | `check_shortener` | 10 | Known URL shortener |
 
-Brands, official domains and abbreviations live in [`data/brands.json`](data/brands.json) (18 Vietnamese and regional brands). Short brands (5 characters or fewer) only match as a separate token, so `zalo-nhanqua.com` is caught while `zalora.com` is not.
+Brands, official domains and abbreviations live in [`data/brands.json`](data/brands.json) (20 Vietnamese, regional and global brands). Short brands (5 characters or fewer) only match as a separate token, so `zalo-nhanqua.com` is caught while `zalora.com` is not.
 
 **Lists.**
 - *Blocklist:* 16,843 Vietnamese-targeted domains (vn-badsite-filter, CC0/MIT) and OpenPhish URLs. A hit always scores 100.
