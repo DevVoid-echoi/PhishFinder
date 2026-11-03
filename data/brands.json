@@ -14,6 +14,8 @@
   "tiki": {"official": ["tiki.vn"], "aliases": []},
   "facebook": {"official": ["facebook.com", "fb.com", "fb.me"], "aliases": ["fb"]},
   "instagram": {"official": ["instagram.com"], "aliases": []},
+  "tiktok": {"official": ["tiktok.com", "tiktokv.com", "tiktokcdn.com", "tiktokshop.com", "tiktokglobalshop.com"], "aliases": []},
+  "snapchat": {"official": ["snapchat.com", "snap.com"], "aliases": []},
   "zalo": {"official": ["zalo.me", "zalo.vn"], "aliases": []},
   "vneid": {"official": ["vneid.gov.vn"], "aliases": []},
   "gdt": {"official": ["gdt.gov.vn"], "aliases": []}

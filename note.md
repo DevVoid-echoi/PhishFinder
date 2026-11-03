@@ -67,6 +67,14 @@ These feed the "Known limitations" section of the README.
 - **Reports are only written to the log** (`REPORT verdict level host version`); they must be read by hand daily in step 15 and moved to a database later.
 - **TLS worst case is about 10 s per uncached host,** which the extension must tolerate (show the local result first, update when the server answers).
 
+### Page analysis (`app/page_features.py`, `app/page_analysis.py`)
+- **Only the HTML as downloaded is read.** Text and forms built by JavaScript are invisible, and so is anything hidden with CSS that a person would not see (it is read as if visible).
+- **Cloaking:** a phishing page can recognise a cloud server and serve harmless content to it.
+- **Late warning:** the result arrives after the page has loaded, so the user may already be typing.
+- **News pages with a login box** whose title names a bank ("Vietcombank warns of scams") would fire `page_brand_login`; measure how often on real pages before changing the rule.
+- **Forms submitted by JavaScript** have no `action`, so `page_form_external` misses them.
+- **Points are starting values** (50 / 20 / 20 for rules, 40 / 30 / 10 for AI) until the page measurement and the calibration rerun.
+
 ### SOC alerts (`app/alert.py`)
 - **Alerts in production come only from user reports,** so their only observable is a hostname and `risk_score` is `null`; `to_alert` on URL results is used from the command line for now.
 - **No deduplication.** Ten users confirming one domain give ten alerts, and `/v1/report` has no authentication, so a script could flood the log until the gateway rate limit exists.
@@ -127,6 +135,14 @@ These feed the "Known limitations" section of the README.
 - **Impersonation (T1656) is keyed on exact rule names,** not a substring match, so a future rule cannot trigger it by accident.
 - **Timestamps are UTC,** because a SIEM merges logs from machines in different time zones.
 - **Plan step numbers never appear in code, comments or tests;** they mean nothing to someone reading the code. `note.md` is the only place that uses them.
+- **TikTok and Snapchat added to `brands.json`** (2026-11-02): TikTok Shop scams target Vietnamese users (`napxutiktok.net`, `tiktokck888.com` in the collected feeds). Official domains are kept to the main ones: `tiktok.com`, `tiktokv.com`, `tiktokcdn.com`, `tiktokshop.com`, `tiktokglobalshop.com` (same registrar as `tiktok.com`), `snapchat.com`, `snap.com` (the `snapchat.com` certificate is issued to Snap Inc. for `*.snap.com`). Validation split: the 5 TikTok/Snapchat phishing entries went from 0 to 5 detected; yellow false alarms rose from 0.180% to 0.205% (4 TikTok infrastructure domains such as `tiktokv-eu.com`, plus `tiktokmod.pro`), red unchanged at 0.005%. Unverified infrastructure domains are not added as official: a wrong official entry would exempt an attacker's domain from every lookalike check.
+- **Page analysis is two layers:** fixed rules on the HTML (work without the AI), then an AI that only extracts facts into a fixed schema. AI findings only add reasons; nothing removes a rule finding, so a fully manipulated AI cannot lower a warning (tested).
+- **Prompt injection defences:** the page sits inside `<page>` tags, every `page` tag the page writes itself is removed (including `< /page>` and `<page id=...>`), the AI output is validated strictly (`parse_ai`: exact keys, known values, types, summary cut to 300 characters), and any failure falls back to the rules with the error type logged.
+- **Brands are read from the page title only,** never the body: real shops write "pay with MoMo or Vietcombank". Short names and aliases must be whole words, Cyrillic look-alikes are mapped, but domain homoglyphs (`0` to `o`) are not applied to titles.
+- **Only protected brands count for the AI:** every real site "claims to be" itself, so a claimed brand must be in `brands.json`.
+- **Password fields are `type="password"`,** not any field whose name contains "password"; OTP and card fields also match the standard `autocomplete` values (`one-time-code`, `cc-number`...).
+- **The AI is passed in as `llm_fn`,** so tests use fake answers (no network, no cost) and the provider can change without touching the rules.
+- **Page analysis uses Claude Haiku 5.5** (`claude-haiku-5-5`, $0.10 / $0.50 per million input / output tokens, about $0.0004 per page). Cost is capped twice: `DailyBudget` in code (300 calls a day, at most about $3 a month) and a monthly spend limit in the Anthropic Console. Tests and CI never call the real API; the AI is a fake function there. Free tiers were considered: Gemini's free tier uses submitted content to improve Google's products, which conflicts with sending users' pages.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
 ## To address in upcoming steps
@@ -135,7 +151,7 @@ These feed the "Known limitations" section of the README.
 - Step 9 (idea, measure before adding): a public domain resolving to an internal address is anomalous and could score (possible DNS rebinding); legitimate developer domains (`localtest.me`, `lvh.me`, `*.nip.io`) would be false alarms.
 - Step 9 (idea): for allowlisted domains, try reducing the domain-level lookalike points instead of skipping them, and keep whichever measures better on the validation set. Print false alarms from the validation split, not the test split, while tuning.
 - **After step 9: Vietnamese phishing sources.** Fresh Vietnamese samples are the main gap (4 `.vn` entries in the first fresh test set). Checked on 2026-10-23:
-  - ChongLuaDao: `chongluadao.vn` is online with a public denylist page, but the old API (`api.chongluadao.vn`) no longer resolves and the GitHub mirrors (vn-badsite-filter, elliotwutingfeng/ChongLuaDao-Phishing-Blocklist) are frozen. Ask them for official data access; do not scrape the site without permission. The frozen lists remain usable as "old" phishing (vn-badsite-filter is CC0/MIT; check the other repo's license).
+  - ChongLuaDao: `chongluadao.vn` is online with a public denylist page, but the old API (`api.chongluadao.vn`) no longer resolves and the GitHub mirrors (vn-badsite-filter, elliotwutingfeng/ChongLuaDao-Phishing-Blocklist) are frozen. Ask them for official data access; do not scrape the site without permission. The frozen lists remain usable as "old" phishing (vn-badsite-filter is CC0/MIT). Checked 2026-11-02: elliotwutingfeng/ChongLuaDao-Phishing-Blocklist calls itself defunct; its scraper reads the same dead `api.chongluadao.vn`, the list last changed on 2024-05-16 (later commits are dependency bumps only), and 16,821 of its 16,919 registered domains are already in vn-badsite-filter. The repository is BSD-3-Clause, but the data is ChongLuaDao's. Not added: 98 extra domains, at least 2.5 years old, would add more re-registered false alarms than detections.
   - tinnhiemmang.vn (NCSC): manual lookup only, no public API.
   - hostsVN and ABPVN are active, but they are ad-blocking lists: their `.vn` entries are ad servers, not phishing. Using them as phishing labels would poison the data.
   - hagezi `fake` list: about 17,500 domains, only 1 Vietnam-related.
@@ -144,8 +160,18 @@ These feed the "Known limitations" section of the README.
   - **Contacted ChongLuaDao on 2026-10-25** (awaiting a reply). Asked whether they provide phishing domains or URLs for non-commercial research, under which terms, and whether entries carry a first-seen date. Offered three usage levels for them to choose from: (a) measurement only, never shipped; (b) lookup on our server, the extension sends hostnames only; (c) bundled in the extension with attribution. We follow whichever level they allow, even (a) only. If they allow only (b), the list is consulted only for hostnames the server is asked about (currently yellow results).
   - Evidence given: of 7,326 fresh phishing entries (2026-10-22..25) none mentions a Vietnamese bank or e-wallet brand and only 7 have a `.vn` suffix (0.10%); counted on domain names only, page content was not checked. `api.chongluadao.vn` did not resolve on 2026-10-21, 23 and 25.
 - Step 12/13 decision (the API needs no change): ask the server (hostname only) for the "uncertain" band 15-29 as well as yellow. On the fresh test set this band holds 20.2% of phishing but only 1.8% of benign pages, and it is exactly where domain age and TLS separate them; with "yellow only", those signals are never used.
+- **PhishVN and more feeds (decided 2026-11-02, week 6, together with the step 9 rerun).** PhishVN (Mendeley DOI 10.17632/b97hxbxtpd, CC BY 4.0, published 2026-09) holds 53,116 time-stamped URLs: a verified core of 2,587 phishing URLs from the NCSC (Tin Nhiem Mang) feed and 16,410 legitimate URLs, plus 34,119 "bronze" URLs from ChongLuaDao and OpenPhish. Each row has an impersonation scenario (bank, tax, delivery...) and a label-confidence tier. The authors report about 12% wrong phishing labels (95% CI 7-20%), mostly in bronze, and recommend a temporal split grouped by registered domain.
+  1. Download into `data/raw/` (not committed) and inspect: date range, URL forms (paths or bare domains), counts per tier and scenario.
+  2. Measure the rule layer on the verified NCSC core first: the first trustworthy answer to "do the rules catch phishing aimed at Vietnamese users?" (7 fresh samples so far). Read misses per scenario to find missing rules and keywords.
+  3. Step 9 rerun: train on the verified core only (never bronze, which shares OpenPhish with our test set), split by time and registered domain, drop URLs that are in our test sets, and keep a PhishVN test split. `data/weights.json` is adopted only if it beats the hand-written points on validation.
+  4. Do not put PhishVN legitimate URLs in the allowlist: the same pages in the allowlist and the test set would flatter the false-alarm rate. Use them as benign test pages and to review official domains in `brands.json`; allowlist them only if validation shows a gain.
+  5. Credit PhishVN in the README (CC BY 4.0 requires attribution).
+- **Phishing.Database ACTIVE lists (MIT)** for the blocklist and daily collection: measure the overlap with phishing.army first, since it may already aggregate them.
+- **Google Safe Browsing is not used:** Chrome already applies it for every user, the API is for non-commercial use only, and the Lookup API sends full URLs to Google, against the hostname-only rule (the Update API avoids that but adds nothing Chrome does not already do).
+- ChongLuaDao is still worth an answer: PhishVN is a fixed snapshot, while ChongLuaDao could supply fresh Vietnamese phishing over time.
 - Step 9.3 (before the week 6 rerun): look up domain age and TLS for ~500 benign and ~500 phishing hosts soon after collection and pass them as `extra`; add `benign_private.txt` (pages with paths); collect Vietnamese samples.
 - Step 7c: page analysis reuses `follow(..., method="GET")`; add Vietnamese shorteners to `SHORTENERS` once they are checked.
+- Step 7c part 2: `app/llm.py` (Claude Haiku 5.5, structured output, low effort, timeout), `DailyBudget`, `POST /v1/analyze-page` (opt-in, full URL, never logged, cached by hash). Part 3: measure on ~200 live phishing and ~200 yellow benign pages from a VM, with and without the AI, and pass the fired page rules to the calibration rerun.
 - January (email tool): reuse `contains_brand` for display-name spoofing and `score_to_level` for email scoring.
 
 ## Results log
