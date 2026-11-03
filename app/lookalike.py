@@ -28,6 +28,7 @@ CONFUSABLES = str.maketrans({
 Finding = Optional[Tuple[int, str]]
 
 SHORT_BRAND_LEN = 5
+MIN_BRAND_LEN = 3  # acb, vib, shb: matched as whole tokens only (SHORT_BRAND_LEN)
 
 def unpunycode(label: str) -> str:
     if label.startswith("xn--"):
@@ -69,9 +70,10 @@ def check_lookalike(u: ParsedURL, check_domain: bool=True) -> Finding:
     if check_domain:
         name = normalize(u.domain_name)
         for brand in BRANDS:
-            if len(brand) >= 4 and contains_brand(brand, u.domain_name):
+            if len(brand) >= MIN_BRAND_LEN and contains_brand(brand, u.domain_name):
                 return 40, f"Domain contains '{brand}' but is not an official {brand} domain"
-            if similarity(name, brand) >= 0.85:
+            # Short names are too close to ordinary words (shub ~ shb), so they need an exact token
+            if len(brand) > SHORT_BRAND_LEN and similarity(name, brand) >= 0.85:
                 return 40, f"Domain '{u.domain_name}' closely resembles '{brand}' (possible impersonation)"
     
     parts = tokens(u.subdomain) | (tokens(u.domain_name) if check_domain else set())
@@ -81,7 +83,7 @@ def check_lookalike(u: ParsedURL, check_domain: bool=True) -> Finding:
             return 35, f"Domain uses '{sorted(hit)[0]}', an abbreviation of {brand}, but is not an official {brand} domain"
 
     for brand in BRANDS:
-        if len(brand) >= 4 and contains_brand(brand, u.subdomain):
+        if len(brand) >= MIN_BRAND_LEN and contains_brand(brand, u.subdomain):
             return 35, f"'{brand}' appears in the subdomain, but the registered domain is {u.registered_domain}"
     return None
 
