@@ -67,6 +67,14 @@ These feed the "Known limitations" section of the README.
 - **Reports are only written to the log** (`REPORT verdict level host version`); they must be read by hand daily in step 15 and moved to a database later.
 - **TLS worst case is about 10 s per uncached host,** which the extension must tolerate (show the local result first, update when the server answers).
 
+### Page analysis (`app/page_features.py`, `app/page_analysis.py`)
+- **Only the HTML as downloaded is read.** Text and forms built by JavaScript are invisible, and so is anything hidden with CSS that a person would not see (it is read as if visible).
+- **Cloaking:** a phishing page can recognise a cloud server and serve harmless content to it.
+- **Late warning:** the result arrives after the page has loaded, so the user may already be typing.
+- **News pages with a login box** whose title names a bank ("Vietcombank warns of scams") would fire `page_brand_login`; measure how often on real pages before changing the rule.
+- **Forms submitted by JavaScript** have no `action`, so `page_form_external` misses them.
+- **Points are starting values** (50 / 20 / 20 for rules, 40 / 30 / 10 for AI) until the page measurement and the calibration rerun.
+
 ### SOC alerts (`app/alert.py`)
 - **Alerts in production come only from user reports,** so their only observable is a hostname and `risk_score` is `null`; `to_alert` on URL results is used from the command line for now.
 - **No deduplication.** Ten users confirming one domain give ten alerts, and `/v1/report` has no authentication, so a script could flood the log until the gateway rate limit exists.
@@ -128,6 +136,13 @@ These feed the "Known limitations" section of the README.
 - **Timestamps are UTC,** because a SIEM merges logs from machines in different time zones.
 - **Plan step numbers never appear in code, comments or tests;** they mean nothing to someone reading the code. `note.md` is the only place that uses them.
 - **TikTok and Snapchat added to `brands.json`** (2026-11-02): TikTok Shop scams target Vietnamese users (`napxutiktok.net`, `tiktokck888.com` in the collected feeds). Official domains are kept to the main ones: `tiktok.com`, `tiktokv.com`, `tiktokcdn.com`, `tiktokshop.com`, `tiktokglobalshop.com` (same registrar as `tiktok.com`), `snapchat.com`, `snap.com` (the `snapchat.com` certificate is issued to Snap Inc. for `*.snap.com`). Validation split: the 5 TikTok/Snapchat phishing entries went from 0 to 5 detected; yellow false alarms rose from 0.180% to 0.205% (4 TikTok infrastructure domains such as `tiktokv-eu.com`, plus `tiktokmod.pro`), red unchanged at 0.005%. Unverified infrastructure domains are not added as official: a wrong official entry would exempt an attacker's domain from every lookalike check.
+- **Page analysis is two layers:** fixed rules on the HTML (work without the AI), then an AI that only extracts facts into a fixed schema. AI findings only add reasons; nothing removes a rule finding, so a fully manipulated AI cannot lower a warning (tested).
+- **Prompt injection defences:** the page sits inside `<page>` tags, every `page` tag the page writes itself is removed (including `< /page>` and `<page id=...>`), the AI output is validated strictly (`parse_ai`: exact keys, known values, types, summary cut to 300 characters), and any failure falls back to the rules with the error type logged.
+- **Brands are read from the page title only,** never the body: real shops write "pay with MoMo or Vietcombank". Short names and aliases must be whole words, Cyrillic look-alikes are mapped, but domain homoglyphs (`0` to `o`) are not applied to titles.
+- **Only protected brands count for the AI:** every real site "claims to be" itself, so a claimed brand must be in `brands.json`.
+- **Password fields are `type="password"`,** not any field whose name contains "password"; OTP and card fields also match the standard `autocomplete` values (`one-time-code`, `cc-number`...).
+- **The AI is passed in as `llm_fn`,** so tests use fake answers (no network, no cost) and the provider can change without touching the rules.
+- **Page analysis uses Claude Haiku 5.5** (`claude-haiku-5-5`, $0.10 / $0.50 per million input / output tokens, about $0.0004 per page). Cost is capped twice: `DailyBudget` in code (300 calls a day, at most about $3 a month) and a monthly spend limit in the Anthropic Console. Tests and CI never call the real API; the AI is a fake function there. Free tiers were considered: Gemini's free tier uses submitted content to improve Google's products, which conflicts with sending users' pages.
 - **The Python code is the reference for the JavaScript port**, including the deviations from the guide (`contains_brand`, aliases, Unicode handling, English reasons and levels).
 
 ## To address in upcoming steps
@@ -156,6 +171,7 @@ These feed the "Known limitations" section of the README.
 - ChongLuaDao is still worth an answer: PhishVN is a fixed snapshot, while ChongLuaDao could supply fresh Vietnamese phishing over time.
 - Step 9.3 (before the week 6 rerun): look up domain age and TLS for ~500 benign and ~500 phishing hosts soon after collection and pass them as `extra`; add `benign_private.txt` (pages with paths); collect Vietnamese samples.
 - Step 7c: page analysis reuses `follow(..., method="GET")`; add Vietnamese shorteners to `SHORTENERS` once they are checked.
+- Step 7c part 2: `app/llm.py` (Claude Haiku 5.5, structured output, low effort, timeout), `DailyBudget`, `POST /v1/analyze-page` (opt-in, full URL, never logged, cached by hash). Part 3: measure on ~200 live phishing and ~200 yellow benign pages from a VM, with and without the AI, and pass the fired page rules to the calibration rerun.
 - January (email tool): reuse `contains_brand` for display-name spoofing and `score_to_level` for email scoring.
 
 ## Results log

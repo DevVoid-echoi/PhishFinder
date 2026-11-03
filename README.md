@@ -41,7 +41,7 @@ git clone https://github.com/DevVoid-echoi/PhishFinder.git
 cd PhishFinder
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m pytest                                    # 207 tests, no network access
+python -m pytest                                    # 234 tests, no network access
 ```
 
 Check a URL, a domain's registration age, or its TLS certificate:
@@ -143,6 +143,8 @@ app/
   online.py        domain age via RDAP
   reputation.py    TLS certificate check with SSRF protection
   page_fetch.py    redirect following with SSRF checks on every hop
+  page_features.py signals from a page's HTML: title brands, password/OTP/card fields, form targets
+  page_analysis.py page rules plus an optional AI layer that can only add risk
   alert.py         SOC alerts with MITRE ATT&CK techniques, JSON Lines output
   evaluation.py    dataset loading, splits, metrics
   calibrate.py     logistic regression and threshold selection
@@ -150,14 +152,14 @@ app/
   main.py          production HTTP API (FastAPI): /v1/reputation, /v1/expand, /v1/report, /v1/health
 scripts/           download_feeds, collect_fresh, update_tranco, evaluate
 data/              brands.json, Tranco list ID, hand-checked Vietnamese sites
-tests/             207 pytest tests; network access is blocked in every test
+tests/             234 pytest tests; network access is blocked in every test
 ```
 
 Downloaded feeds, the collected phishing set and the Tranco-derived files are not committed (personal-use terms and size). The scripts above recreate everything except the first-seen dates, which only accumulate over time.
 
 ## Roadmap
 
-1. **Page analysis:** rules and AI on page content, opt-in only.
+1. **Page analysis:** rules on page content and a prompt-injection-resistant AI layer are done; the opt-in endpoint and measurement on real pages are next.
 2. **Chrome extension:** the same rules in JavaScript, verified against Python test vectors; private beta, then Chrome Web Store.
 3. **Later:** email header analysis (SPF, DKIM, DMARC) for analysts, Certificate Transparency monitoring.
 
