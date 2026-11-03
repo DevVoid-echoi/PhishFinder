@@ -39,6 +39,9 @@ These feed the "Known limitations" section of the README.
 - **The cheap-TLD rule is too common on legitimate sites to stand alone** (about 1.4% of benign pages, above the 0.5% yellow target), so a learned model cannot warn on it by itself.
 - **Fresh Vietnamese phishing is almost absent:** 4 to 7 `.vn` entries in the fresh test set, so the Vietnamese detection rate is not yet meaningful.
 - **Benign pages have no paths** (0 of 80,000) while 350 phishing entries do, so path-based rules (keywords in path, long URL) can learn leaked weights; `benign_private.txt` from real browsing would fix this.
+- **PhishVN (NCSC-verified phishing aimed at Vietnamese users) is old:** dated 2020-02 to 2025-02-18, after which the NCSC feed published nothing. It measures whether the rules recognise Vietnamese *kinds* of phishing, not fresh phishing; most domains are dead, so domain age and TLS cannot be measured on it. Almost every URL is a bare domain in both labels, so it has no path shortcut.
+- **PhishVN scenarios are inferred by its authors from brand tokens in the URL,** so "bank" means "the URL names a bank". A bank phish without a bank name lands in "other" (83% of rows), and per-scenario detection overstates how well brand rules cover each sector.
+- **The rule layer catches 6.0% of PhishVN test phishing (10.3% on train).** The test split is the newest; the drop shows phishing moving away from what the rules look for. Only 28% of NCSC phishing fires an informative rule.
 - **Rules that never fire in training get weight 0** in the learned model (`check_ip_host`, `check_shortener`, `check_at_symbol`), i.e. they stop affecting the score while their reasons are still shown.
 - **URL blocklist matching ignores scheme, host case and trailing slash, and drops an appended query** when the listed URL has none. A listed URL that carries its own query still needs that exact query, so attackers can evade it by changing parameters.
 
@@ -183,6 +186,7 @@ Rule layer only (`use_blacklist=False`), benign test split. Phishing test: newes
 | 2026-10-22 | 746PX | 7,503 | 51,959 (178) | 0.000% | 0.080% | 0.2% | 1.8% | 11.2% | Same phishing data, new Tranco list |
 | 2026-10-25 | GQ32K | 19,997 | 7,326 (7) | 0.000% | 0.150% | 0.1% | 1.4% | 71.4% | 80k benign; fresh-only phishing test; hand-written points |
 | 2026-10-25 | GQ32K | 19,997 | 7,326 (7) | 0.005% | 0.005% | 0.7% | 0.7% | 0.0% | Learned weights (L2 0.001, thresholds 94/94); not adopted |
+| 2026-11-03 | 7462X | PhishVN test: 2,246 certified + 353 Tranco .vn + 358 org + 888 Tranco | 487 NCSC | - | 0.0% / 0.3% / 0.6% / 0.1% | - | 6.0% | 6.0% | PhishVN (gold+silver), hand-written points; bank 20.3%, ecommerce 29.7%, gov 5.9%, delivery 0%, other 0% |
 
 ## CI/CD schedule
 Decided 2026-10-30: CI starts now instead of after the last step, so every later step (alerts, page analysis, the JavaScript port) is merged behind passing tests.
