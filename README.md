@@ -74,14 +74,15 @@ URL ─► parser ─► rules (in the browser) ─► score + level + reasons
 | `check_ip_host` | 30 | Raw IP address instead of a domain |
 | `check_at_symbol` | 30 | `@` before the host hides the real destination |
 | `check_punycode` | 25 | Internationalized (`xn--`) hostname |
-| `check_keywords` | 10 each, max 25 | `xacthuc`, `dang-nhap`, `nhanqua`, `otp`... |
+| `check_fake_vn_suffix` | 25 | `.com.vn` or `.vn-` before the real suffix (`scb.com.vn-ax.xyz`, real domain `vn-ax.xyz`) |
+| `check_keywords` | 10 each, max 25 | `xacthuc`, `dang-nhap`, `nhanqua`, `nganhang`, `tinchap`, `otp`... |
 | `check_many_subdomains` | 15 | Three or more subdomain levels |
 | `check_suspicious_tld` | 15 | Frequently abused TLDs (`.xyz`, `.top`, `.icu`...) |
 | `check_no_https` | 10 | Plain HTTP |
 | `check_long_url` | 10 | URL longer than 100 characters |
 | `check_shortener` | 10 | Known URL shortener |
 
-Brands, official domains and abbreviations live in [`data/brands.json`](data/brands.json) (20 Vietnamese, regional and global brands). Short brands (5 characters or fewer) only match as a separate token, so `zalo-nhanqua.com` is caught while `zalora.com` is not.
+Brands, official domains and abbreviations live in [`data/brands.json`](data/brands.json) (39 brands: Vietnamese banks, e-wallets, payment networks, delivery, telecom and government services, plus regional and global platforms; official domains checked against the NCSC trusted-site registry). Short brands (5 characters or fewer) only match as a separate token, so `zalo-nhanqua.com` and `acb-xacthuc.com` are caught while `zalora.com` and `acbs.com.vn` are not.
 
 **Lists.**
 - *Blocklist:* 16,843 Vietnamese-targeted domains (vn-badsite-filter, CC0/MIT) and OpenPhish URLs. A hit always scores 100.
@@ -116,7 +117,7 @@ Targets before release: red false alarms at or below 0.05% and yellow at or belo
 
 **Reading these numbers.** Overall detection is low on purpose and for a clear reason: 77.8% of the fresh phishing in these international feeds are random domains (`6a2035.top`) that fire no informative rule, exactly like 98% of legitimate pages. No weighting of URL rules can separate inputs that look identical; that is the job of the server checks and, later, page analysis. The rules target Vietnamese brand impersonation, which these feeds barely contain (7 fresh samples so far).
 
-**Vietnamese phishing (PhishVN).** On the NCSC-verified part of PhishVN (2,587 phishing domains reported in Vietnam, 2020-2025, split by time by its authors) the rules catch **6.0%** of the newest test split, 10.3% of the older train split: 20% of bank-named phishing, 30% of e-commerce, none of delivery, telecom and gaming. False alarms stay low on Vietnamese sites: 0 of 2,246 NCSC-certified sites and 1 of 353 popular `.vn` sites. `python -m scripts.evaluate_phishvn` reproduces it after downloading the dataset.
+**Vietnamese phishing (PhishVN).** On the NCSC-verified part of PhishVN (2,587 phishing domains reported in Vietnam, 2020-2025, split by time by its authors) the rules catch **14.6%** of the newest test split (6.0% before the Vietnamese brand and fake-suffix rules were added from the train split): 86% of bank-named phishing, 30% of e-commerce, little of delivery, telecom and gaming. False alarms stay low on Vietnamese sites: 0 of 2,246 NCSC-certified sites and 2 of 353 popular `.vn` sites; the 80,000-page Tranco test is unchanged. `python -m scripts.evaluate_phishvn` reproduces it after downloading the dataset.
 
 **Learned weights.** `python -m scripts.evaluate --calibrate` fits a logistic regression on the fired rules: one interpretable weight per rule, class balancing, L2 chosen on validation, red and yellow thresholds picked to meet the false-alarm targets. About 207,000 URLs collapse into about 33 distinct rule sets, so training takes a fraction of a second. On current data the learned model detects less than the hand-written points, so it is not used; it will be retrained once server signals and more Vietnamese samples are in the data.
 

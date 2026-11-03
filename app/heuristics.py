@@ -1,4 +1,5 @@
 import ipaddress
+import re
 from typing import Optional, Tuple
 
 from app.parser import ParsedURL
@@ -11,7 +12,11 @@ SUSPICIOUS_KEYWORDS = [
     "xacthuc", "xac-thuc", "dangnhap", "dang-nhap", "login", "verify",
     "khoa-tai-khoan", "mo-khoa", "nhanqua", "nhan-qua", "trungthuong",
     "hoantien", "hoan-tien", "update", "secure", "otp",
+    "nganhang", "ngan-hang", "ebanking", "tinchap", "quatang", "qua-tang", "nhantien", "chuyentien",
 ]
+
+# ".com.vn" or ".vn-" before the real suffix: scb.com.vn-ax.xyz, techcombank.vn-iy.life
+FAKE_VN_SUFFIX = re.compile(r"(?:^|[.-])(?:com|gov|net|org|edu)[.-]vn(?:$|[.-])|\.vn-")
 
 SHORTENERS = {"bit.ly", "tinyurl.com", "t.co", "goo.gl", "rb.gy", "cutt.ly", "is.gd", "shorturl.at"}
 
@@ -55,6 +60,12 @@ def check_keywords(u: ParsedURL) -> Finding:
         return min(10*len(found), 25), "Contains suspicious keywords: " + ", ".join(found)
     return None
 
+def check_fake_vn_suffix(u: ParsedURL) -> Finding:
+    name = u.hostname[: -len(u.suffix) - 1] if u.suffix else u.hostname
+    if FAKE_VN_SUFFIX.search(name):
+        return 25, f"Hostname imitates a Vietnamese domain, but the real domain is {u.registered_domain}"
+    return None
+
 def check_shortener(u: ParsedURL) -> Finding:
     if u.registered_domain in SHORTENERS or u.hostname in SHORTENERS:
         return 10, "URL shortener hides the final destination"
@@ -68,5 +79,5 @@ def check_punycode(u: ParsedURL) -> Finding:
 ALL_CHECKS = [
     check_ip_host, check_at_symbol, check_no_https, check_long_url,
     check_many_subdomains, check_suspicious_tld, check_keywords,
-    check_shortener, check_punycode,
+    check_shortener, check_punycode, check_fake_vn_suffix,
 ]

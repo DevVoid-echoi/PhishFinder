@@ -5,6 +5,10 @@ from app.parser import parse_url
 from app.scorer import analyze
 
 
+def rules_of(link):
+    return {r["rule"] for r in analyze(link, use_blacklist=False)["reasons"]}
+
+
 def test_vn_domain():
     u = parse_url("https://ebank.vietcombank.com.vn/login")
     assert u.registered_domain == "vietcombank.com.vn"
@@ -67,3 +71,26 @@ def test_short_brand_inside_word(link):
 ])
 def test_short_brand_as_token_still_caught(link):
     assert analyze(link)["score"] >= 40
+
+
+@pytest.mark.parametrize("link", ["http://acb-xacthuc.com", "http://vib.online-verify.top", "http://scb.com-vn.vip"])
+def test_three_letter_brand_as_token(link):
+    assert "check_lookalike" in rules_of(link)
+
+@pytest.mark.parametrize("link", ["https://shub.edu.vn", "https://npt.com.vn", "https://acbs.com.vn"])
+def test_short_brand_needs_an_exact_token(link):
+    assert "check_lookalike" not in rules_of(link)
+
+@pytest.mark.parametrize("link", [
+    "http://scb.com.vn-ax.xyz", "http://scb.com-vn.vip", "http://techcombank.vn-iy.life",
+    "http://mail.com.vn.evil.top",
+])
+def test_fake_vn_suffix(link):
+    assert "check_fake_vn_suffix" in rules_of(link)
+
+@pytest.mark.parametrize("link", ["https://vietcombank.com.vn", "https://dichvucong.gov.vn", "https://vn-express.net"])
+def test_real_vn_suffix_is_not_caught(link):
+    assert "check_fake_vn_suffix" not in rules_of(link)
+
+def test_vietnamese_banking_keywords():
+    assert "check_keywords" in rules_of("http://vaytinchap-nganhang24h.net")
