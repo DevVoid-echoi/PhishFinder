@@ -116,6 +116,8 @@ Targets before release: red false alarms at or below 0.05% and yellow at or belo
 
 **Reading these numbers.** Overall detection is low on purpose and for a clear reason: 77.8% of the fresh phishing in these international feeds are random domains (`6a2035.top`) that fire no informative rule, exactly like 98% of legitimate pages. No weighting of URL rules can separate inputs that look identical; that is the job of the server checks and, later, page analysis. The rules target Vietnamese brand impersonation, which these feeds barely contain (7 fresh samples so far).
 
+**Vietnamese phishing (PhishVN).** On the NCSC-verified part of PhishVN (2,587 phishing domains reported in Vietnam, 2020-2025, split by time by its authors) the rules catch **6.0%** of the newest test split, 10.3% of the older train split: 20% of bank-named phishing, 30% of e-commerce, none of delivery, telecom and gaming. False alarms stay low on Vietnamese sites: 0 of 2,246 NCSC-certified sites and 1 of 353 popular `.vn` sites. `python -m scripts.evaluate_phishvn` reproduces it after downloading the dataset.
+
 **Learned weights.** `python -m scripts.evaluate --calibrate` fits a logistic regression on the fired rules: one interpretable weight per rule, class balancing, L2 chosen on validation, red and yellow thresholds picked to meet the false-alarm targets. About 207,000 URLs collapse into about 33 distinct rule sets, so training takes a fraction of a second. On current data the learned model detects less than the hand-written points, so it is not used; it will be retrained once server signals and more Vietnamese samples are in the data.
 
 ## Known limitations
@@ -162,6 +164,11 @@ Downloaded feeds, the collected phishing set and the Tranco-derived files are no
 1. **Page analysis:** rules on page content and a prompt-injection-resistant AI layer are done; the opt-in endpoint and measurement on real pages are next.
 2. **Chrome extension:** the same rules in JavaScript, verified against Python test vectors; private beta, then Chrome Web Store.
 3. **Later:** email header analysis (SPF, DKIM, DMARC) for analysts, Certificate Transparency monitoring.
+
+## Data credits
+
+- **PhishVN:** T. N. Vu, *PhishVN: A Time-Stamped Vietnamese URL Phishing Dataset* (2026), [doi:10.17632/b97hxbxtpd](https://doi.org/10.17632/b97hxbxtpd), CC BY 4.0; phishing from the NCSC "Tín Nhiệm Mạng" blacklist, benign from its trusted-organisation registry and Tranco. Used for measurement only, not redistributed.
+- **vn-badsite-filter** (CC0/MIT), **phishing.army**, **OpenPhish** and the **Tranco** list (Le Pochat et al., NDSS 2019).
 
 ## License
 

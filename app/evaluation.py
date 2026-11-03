@@ -88,3 +88,22 @@ def print_report(r: dict, max_false_alarms: int = 50) -> None:
           f"   Vietnamese, yellow or red: {r['recall_any_vn']:.1%}")
     for url, level in r["false_positives"][:max_false_alarms]:
         print(f"  FALSE ALARM [{level}] {url}")
+
+def load_phishvn(path: Path, tiers: tuple = ("gold", "silver")) -> list:
+    """PhishVN (Vu, 2026, CC BY 4.0, doi:10.17632/b97hxbxtpd). Bronze rows are skipped: they come
+    from the ChongLuaDao mirror (our blocklist) and OpenPhish (our test set)."""
+    rows = []
+    with open(path, encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            if row["tier"] not in tiers:
+                continue
+            day, month, year = (row["collected_at"].split("/") + ["", "", ""])[:3]
+            rows.append({
+                "url": as_url(row["url"].strip()),
+                "label": row["label"],
+                "split": row["split"],
+                "source": row["source"],
+                "scenario": row["scenario"],
+                "date": f"{year}-{month}-{day}" if year else "",
+            })
+    return rows
