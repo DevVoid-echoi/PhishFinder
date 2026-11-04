@@ -85,7 +85,7 @@ URL ─► parser ─► rules (in the browser) ─► score + level + reasons
 Brands, official domains and abbreviations live in [`data/brands.json`](data/brands.json) (39 brands: Vietnamese banks, e-wallets, payment networks, delivery, telecom and government services, plus regional and global platforms; official domains checked against the NCSC trusted-site registry). Short brands (5 characters or fewer) only match as a separate token, so `zalo-nhanqua.com` and `acb-xacthuc.com` are caught while `zalora.com` and `acbs.com.vn` are not.
 
 **Lists.**
-- *Blocklist:* 16,843 Vietnamese-targeted domains (vn-badsite-filter, CC0/MIT) and OpenPhish URLs. A hit always scores 100.
+- *Blocklist:* 16,843 Vietnamese-targeted domains (vn-badsite-filter, CC0/MIT), 142 domains from Vietnamese government and press advisories (each checked against its source), and OpenPhish URLs. A hit always scores 100.
 - *Allowlist:* the Tranco top 10,000 skip lookalike checks on their own name only. Subdomain checks still run, because 752 of the collected phishing pages sit on popular hosting platforms (`eu.cc`, `mybluehost.me`...); skipping them would let `vietcombank-xacthuc.wordpress.com` through. This cut false alarms on the top 10,000 sites from 35 to 10.
 
 **Server checks** (hostname only, never the full URL). The extension strips each URL to its hostname before sending; `GET /v1/reputation?host=` rejects anything else, so paths and query strings, which can carry reset tokens or emails, never leave the user's machine:
@@ -168,6 +168,7 @@ PhishFinder/
 │   └── evaluate_phishvn.py measurement on Vietnamese phishing (PhishVN)
 ├── data/
 │   ├── brands.json         39 protected brands, official domains, abbreviations
+│   ├── blacklist_manual.txt domains from Vietnamese government and press advisories, with sources
 │   └── eval/
 │       ├── benign_vn.txt   hand-checked Vietnamese sites
 │       └── tranco_id.txt   Tranco list ID used for the published numbers

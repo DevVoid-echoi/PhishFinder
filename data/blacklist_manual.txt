@@ -1,0 +1,175 @@
+# Phishing domains named in Vietnamese government and press advisories.
+# Reviewed 2026-11-03: every entry appears on the cited page; domains re-registered after
+# the advisory (RDAP) and ChongLuaDao entries (not verifiable, data use not yet permitted)
+# are left out. Platform subdomains are listed as full hostnames, never the platform.
+# Re-check yearly: an expired domain can be registered again by someone else.
+
+# Nhân Dân: https://nhandan.vn/xuat-hien-website-gia-mao-he-thong-dinh-danh-dien-tu-vneid-post998836.html
+bcavneid.com  # 2026-10-29, Phòng An ninh mạng – Công an TP Hải Phòng
+
+# 1Thế giới: https://1thegioi.vn/lap-trang-web-gia-mao-cong-dich-vu-cong-quoc-gia-va-co-quan-thue-chieu-tro-tinh-vi-lua-chiem-tai-khoan-rut-sach-tien-259305.html
+congthuegov.com  # 2026-10-07, Thuế TP.HCM
+dichvuconghs.com  # 2026-10-07, Công an TP Hải Phòng
+khaithuedientugov.com  # 2026-10-07, Thuế TP.HCM
+
+# An ninh Thủ đô: https://anninhthudo.vn/co-quan-thue-khuyen-cao-nguoi-dan-khong-truy-cap-3-website-gia-mao-post668454.antd
+congthuedientutructuyen.com  # 2026-09-15, Cục Thuế / Thuế TP Hà Nội
+dangkythuedientu.vn  # 2026-09-15, Cục Thuế / Thuế TP Hà Nội
+
+# Sở hữu trí tuệ: https://sohuutritue.net.vn/canh-giac-voi-website-gia-mao-dichvuconghanhchinhcom-d394926.html
+dichvuconghanhchinh.com  # 2026-06-21, Phòng An ninh mạng – Công an TP Đà Nẵng
+
+# CafeF: https://cafef.vn/bo-tai-chinh-gui-bo-cong-an-danh-sach-website-gia-mao-188260528134604581.chn
+thuhoibotaichinh.com  # 2026-05-28, Bộ Tài chính (CV 1314) → Cục A05 Bộ Công an
+
+# Dân trí: https://dantri.com.vn/phap-luat/canh-bao-thu-doan-gia-mao-website-ngan-hang-de-chiem-doat-tai-san-20260406184451779.htm
+vietcombank-priority.com  # 2026-04-06, Phòng An ninh mạng – Công an tỉnh Ninh Bình
+
+# tinnhiemmang.vn/website-lua-dao: https://tinnhiemmang.vn/website-lua-dao
+amazou2.com  # 2025-02-12, NCSC – tinnhiemmang.vn (đang xử lý)
+amzzcbe-vn.com  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+bcavn.cc  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+chinhphu2025.com  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+crnikjhek.top  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+ctygiaohangtietkiemm1.com  # 2025-01-21, NCSC – tinnhiemmang.vn (đang xử lý)
+doitacchienluoc.com  # 2025-02-12, NCSC – tinnhiemmang.vn (đang xử lý)
+hcmphattrien.com  # 2025-01-21, NCSC – tinnhiemmang.vn (đang xử lý)
+hhkkd3.com  # 2025-01-21, NCSC – tinnhiemmang.vn (đang xử lý)
+mall2024tn.com  # 2025-02-12, NCSC – tinnhiemmang.vn (đang xử lý)
+mallsvipshop.top  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+muacard.online  # 2025-02-12, NCSC – tinnhiemmang.vn (đang xử lý)
+shop-worldwide-amz.top  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+sp6708p.com  # 2025-01-21, NCSC – tinnhiemmang.vn (đang xử lý)
+tiktokshopseller-vn.com  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+tuyendungapple.com  # 2025-01-21, NCSC – tinnhiemmang.vn (đang xử lý)
+vnttiktok.cc  # 2025-02-12, NCSC – tinnhiemmang.vn (đang xử lý)
+vtp-vandon.online  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+youtubercash.com  # 2025-02-18, NCSC – tinnhiemmang.vn (đang xử lý)
+
+# Sở Tài chính Đắk Lắk (gov.vn): http://sotaichinh.daklak.gov.vn/-/thong-bao-cac-ten-mien-gia-mao-cac-co-quan-to-chuc-tai-chinh-cac-ngan-hang
+558-558-559.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+amazonl4.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+baovietin.top  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+baovietn.vip  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+baovietvay.top  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+baovietvc.top  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+cct-giaohangtietkiem.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+cham-soc-the-truc-tuyen.com.vn  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+chamsockhachhang-uudaithetructuyen-thang8.online  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+chamsocthekhachhang-tructuyen-thang8.com.vn  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+congtygiaohangtietkiemvn.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+dautuphattrienvnfic.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+dienmayxanh389.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+dulieucutru.org  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+giaohangtietkiem247.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+giaohangtietkiem247.top  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+hangtietkiem.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+hethongnoibo.bio.link  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+hethongtikicareers24.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+hethongtikicareers24h.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+hotro0nline28.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+hotrokhachhang-tructuyenthe.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+kpd63519s.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+kyaj11.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+lazada68.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+mbbkh-canhan.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+mmbonline01.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+nhanvienghtk.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+nuk36952s.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+nzx65821s.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+pddgov.cc  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+sdfsshop1.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+sendotv.shop  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+sendovn.shop  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+shopeesopp.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+sjfku11.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+sjfku88.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+sp61889p.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+taichinheximbak.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+tdke03.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+thongtincutru.org  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+tikicareers.vip  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+tikijaj3.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+tikimuasam24h.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+tikinew.club  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+tikivn84.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+vnpttechnology.weebly.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+vnsehotro.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+vnsendotv.vip  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+vnviettel.com  # 2024-09-10, NCSC / Cục An toàn thông tin (BC 14/BC-CATTT)
+
+# Nhân Dân: https://nhandan.vn/phat-hien-2-website-gia-mao-trang-thong-tin-dien-tu-cua-bao-hiem-xa-hoi-viet-nam-post821272.html
+govvn.com  # 2024-07-26, Trung tâm CNTT – BHXH Việt Nam
+vnagov.com  # 2024-07-26, Trung tâm CNTT – BHXH Việt Nam
+vssidgov.com  # 2024-07-26, Trung tâm CNTT – BHXH Việt Nam
+
+# Công an tỉnh Quảng Ngãi (gov.vn): https://congan.quangngai.gov.vn/danh-muc-san-pham/-tin-tuc-su-kien/an-ninh-an-toan-thong-tin/danh-sach-20-website-gia-mao-cong-dich-vu-cong-quoc-gia-ngan-hang.html
+hhlpa.com  # 2024-05-03, Cục An toàn thông tin
+nganhangsaison.org  # 2024-05-03, Cục An toàn thông tin
+vdbank.com.vn  # 2024-05-03, Cục An toàn thông tin
+vietcombanker.com  # 2024-05-03, Cục An toàn thông tin
+vietgcv.cc  # 2024-05-03, Cục An toàn thông tin
+
+# VietNamNet: https://vietnamnet.vn/ngan-chan-them-2-website-gia-mao-trang-thong-tin-dien-tu-giay-phep-lai-xe-2166948.html
+gplxgov.com.vn  # 2023-07-19, Bộ GTVT / Thanh tra Bộ TT&TT / VNNIC
+gplxgovn.vn  # 2023-07-19, Bộ GTVT / Thanh tra Bộ TT&TT / VNNIC
+tcgplxgov.vn  # 2023-07-19, Bộ GTVT / Thanh tra Bộ TT&TT / VNNIC
+
+# Tài chính Doanh nghiệp: https://taichinhdoanhnghiep.net.vn/vncert-cc-canh-bao-nhung-ten-mien-mao-danh-ngan-hang-d32815.html
+acbvnx.com  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-cb.xyz  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-co.top  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-eg.xyz  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-ic.top  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-kr.xyz  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-lt.xyz  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-sc.top  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-scb.top  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-scb.xyz  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-ty.info  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-ty.top  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-ul.top  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-vp.xyz  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-zl.xyz  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+vn-zt.xyz  # 2022-09-25, VNCERT/CC – Cục An toàn thông tin
+
+# VnExpress: https://vnexpress.net/ba-website-gia-mao-trang-tra-cuu-giay-phep-lai-xe-4441623.html
+baogiaothong.net  # 2022-03-21, Bộ GTVT / VAFC
+gplxgov.org.vn  # 2022-03-21, Bộ GTVT / VAFC
+tracuugplx.vn  # 2022-03-21, Bộ GTVT / VAFC
+tracuugplxgov.vn  # 2022-03-21, Bộ GTVT / VAFC
+
+# tinnhiemmang.vn: https://tinnhiemmang.vn/ncsc-canh-bao-canh-giac-phat-hien-nhieu-trang-web-gia-mao-ngan-hang
+taichinh-vietcombank24h.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tinchap-techcombank.store  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tinchapluong-techcombank.xyz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindung-techcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindung-vietcombank.biz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindung-vietcombank.info  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindung-vietcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindung-vietcombank247.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindung-vpbank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindung24h-vietcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindungnganhang-vietcombank247.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindungnganhang-vietcombank365.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindungtechcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+tindungtechcombank247.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vay-vietcombank.biz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaynganhang-techcombank.xyz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytheoluong-techcombank360.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytheoluong-vietcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytheoluong-vietcombank24h.biz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytheoluong-vietcombank360.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytheoluongtechcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytien-sacombank.xyz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytien-techcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytienvietcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytieudungnhanh-vietcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytinchap-tpbank-hanoi.xyz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytinchap-tpbank.xyz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vaytindung-techcombank.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vayvon-techcombank.biz  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vayvonnganhang-techcombank24h.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vayvonnganhang-vietcombank24h.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vietcombank-hotrovaykhachhang.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
+vietcombank-hotrovayvon.online  # 2021-05-04, NCSC (Tín Nhiệm Mạng)
