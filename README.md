@@ -41,7 +41,7 @@ git clone https://github.com/DevVoid-echoi/PhishFinder.git
 cd PhishFinder
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m pytest                                    # 234 tests, no network access
+python -m pytest                                    # 252 tests, no network access
 ```
 
 Check a URL, a domain's registration age, or its TLS certificate:
@@ -136,29 +136,48 @@ The full list, with measurements, is kept in [`note.md`](note.md).
 
 ## Project layout
 
-```
-app/
-  parser.py        URL splitting (Public Suffix List, punycode)
-  heuristics.py    URL rules
-  lookalike.py     brand impersonation, homoglyphs, Unicode look-alikes
-  lists.py         blocklists, allowlist, list loaders
-  scorer.py        score, level and reasons; optional learned weights
-  online.py        domain age via RDAP
-  reputation.py    TLS certificate check with SSRF protection
-  page_fetch.py    redirect following with SSRF checks on every hop
-  page_features.py signals from a page's HTML: title brands, password/OTP/card fields, form targets
-  page_analysis.py page rules plus an optional AI layer that can only add risk
-  alert.py         SOC alerts with MITRE ATT&CK techniques, JSON Lines output
-  evaluation.py    dataset loading, splits, metrics
-  calibrate.py     logistic regression and threshold selection
-  api_core.py      hostname validation, thread-safe cache, reputation lookup
-  main.py          production HTTP API (FastAPI): /v1/reputation, /v1/expand, /v1/report, /v1/health
-scripts/           download_feeds, collect_fresh, update_tranco, evaluate
-data/              brands.json, Tranco list ID, hand-checked Vietnamese sites
-tests/             234 pytest tests; network access is blocked in every test
+```text
+PhishFinder/
+├── app/
+│   ├── parser.py           URL parsing: Public Suffix List, punycode
+│   │
+│   │   # Detection: local rules, no network (to be ported to the extension)
+│   ├── heuristics.py       URL rules: IP host, '@', cheap TLDs, keywords, fake .com.vn suffix
+│   ├── lookalike.py        brand impersonation: typosquats, homoglyphs, Unicode look-alikes
+│   ├── lists.py            blocklist, Tranco allowlist, hand-verified domains
+│   ├── scorer.py           score, level and reasons; optional learned weights
+│   │
+│   │   # Server checks: hostname only, SSRF-safe
+│   ├── online.py           domain age via RDAP
+│   ├── reputation.py       TLS certificate check, public-address guard
+│   ├── page_fetch.py       redirect following, re-checked on every hop
+│   ├── page_features.py    page signals: title brands, password/OTP/card fields, form targets
+│   ├── page_analysis.py    page rules plus an AI layer that can only add risk
+│   ├── api_core.py         hostname validation, thread-safe cache, reputation lookup
+│   ├── main.py             FastAPI app: /v1/reputation, /v1/expand, /v1/report, /v1/health
+│   │
+│   │   # Operations and measurement
+│   ├── alert.py            SOC alerts with MITRE ATT&CK techniques, JSON Lines
+│   ├── evaluation.py       dataset loading, time and random splits, metrics
+│   └── calibrate.py        logistic regression and threshold selection
+├── scripts/
+│   ├── download_feeds.py   fetch phishing feeds (atomic writes, retries)
+│   ├── collect_fresh.py    record the first-seen date of every new phishing entry
+│   ├── update_tranco.py    refresh the allowlist and the benign evaluation set
+│   ├── evaluate.py         false alarms and detection; --calibrate learns weights
+│   └── evaluate_phishvn.py measurement on Vietnamese phishing (PhishVN)
+├── data/
+│   ├── brands.json         39 protected brands, official domains, abbreviations
+│   └── eval/
+│       ├── benign_vn.txt   hand-checked Vietnamese sites
+│       └── tranco_id.txt   Tranco list ID used for the published numbers
+├── tests/                  252 pytest tests; the network is blocked in every test
+├── .github/                CI on Python 3.12 and 3.14, coverage, Dependabot
+├── note.md                 design decisions, limitations, results log
+└── README.md
 ```
 
-Downloaded feeds, the collected phishing set and the Tranco-derived files are not committed (personal-use terms and size). The scripts above recreate everything except the first-seen dates, which only accumulate over time.
+**Not committed** (personal-use terms, size or private history): `data/raw/` (downloaded feeds), `data/tranco_top.csv`, `data/eval/benign.txt` and `data/eval/phishing.csv`, all recreated by the scripts, and `data/raw/phishvn/`, downloaded by hand from its DOI. Only the first-seen dates in `phishing.csv` cannot be recreated, because they accumulate one day at a time.
 
 ## Roadmap
 
