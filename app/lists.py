@@ -71,7 +71,9 @@ def url_key(raw: str, with_query: bool=True) -> str:
         key += "?" + u.query
     return key
 
-BLACKLIST = load_domain_list(RAW / "vn_badsite.txt") | load_domain_list(DATA / "blacklist_manual.txt")
+# chongluadao_manual.txt stays local (under data/raw/) until ChongLuaDao allows redistribution
+BLACKLIST = (load_domain_list(RAW / "vn_badsite.txt") | load_domain_list(DATA / "blacklist_manual.txt")
+             | load_domain_list(RAW / "chongluadao_manual.txt"))
 BLACKLIST_URLS = {url_key(u) for u in load_url_list(RAW / "openphish.txt")}
 ALLOWLIST = load_tranco(DATA / "tranco_top.csv")
 VERIFIED = load_domain_list(DATA / "verified_manual.txt")
