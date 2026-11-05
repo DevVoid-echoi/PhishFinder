@@ -41,7 +41,7 @@ git clone https://github.com/DevVoid-echoi/PhishFinder.git
 cd PhishFinder
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m pytest                                    # 252 tests, no network access
+python -m pytest                                    # 258 tests, no network access
 ```
 
 Check a URL, a domain's registration age, or its TLS certificate:
@@ -119,7 +119,7 @@ Targets before release: red false alarms at or below 0.05% and yellow at or belo
 
 **Vietnamese phishing (PhishVN).** On the NCSC-verified part of PhishVN (2,587 phishing domains reported in Vietnam, 2020-2025, split by time by its authors) the rules catch **14.6%** of the newest test split (6.0% before the Vietnamese brand and fake-suffix rules were added from the train split): 86% of bank-named phishing, 30% of e-commerce, little of delivery, telecom and gaming. False alarms stay low on Vietnamese sites: 0 of 2,246 NCSC-certified sites and 2 of 353 popular `.vn` sites; the 80,000-page Tranco test is unchanged. `python -m scripts.evaluate_phishvn` reproduces it after downloading the dataset.
 
-**Learned weights.** `python -m scripts.evaluate --calibrate` fits a logistic regression on the fired rules: one interpretable weight per rule, class balancing, L2 chosen on validation, red and yellow thresholds picked to meet the false-alarm targets. About 207,000 URLs collapse into about 33 distinct rule sets, so training takes a fraction of a second. On current data the learned model detects less than the hand-written points, so it is not used; it will be retrained once server signals and more Vietnamese samples are in the data.
+**Learned weights.** `python -m scripts.evaluate --calibrate` fits a logistic regression on the fired rules (one interpretable weight per rule, class balancing, L2 and thresholds chosen on validation) with PhishVN added to training and validation, and saves `data/weights.json` only if the model detects at least as much as the hand-written points on every validation set. It does not yet: on PhishVN validation it detects 10.2% against 18.5%. Most training phishing is random domains on cheap TLDs, so the model trusts a cheap TLD more than brand impersonation, and the threshold that keeps false alarms on legitimate cheap-TLD sites under target leaves brand impersonation alone below it. Counting each domain once, choosing the model on PhishVN, other L2 strengths and up-weighting PhishVN 30 times did not change that; new evidence (domain age, TLS) is being collected instead.
 
 ## Known limitations
 
@@ -172,7 +172,7 @@ PhishFinder/
 │   └── eval/
 │       ├── benign_vn.txt   hand-checked Vietnamese sites
 │       └── tranco_id.txt   Tranco list ID used for the published numbers
-├── tests/                  252 pytest tests; the network is blocked in every test
+├── tests/                  258 pytest tests; the network is blocked in every test
 ├── .github/                CI on Python 3.12 and 3.14, coverage, Dependabot
 ├── note.md                 design decisions, limitations, results log
 └── README.md
