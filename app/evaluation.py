@@ -107,3 +107,24 @@ def load_phishvn(path: Path, tiers: tuple = ("gold", "silver")) -> list:
                 "date": f"{year}-{month}-{day}" if year else "",
             })
     return rows
+
+def phishvn_splits(rows: list, val_ratio: float = 0.2) -> dict:
+    """PhishVN's own validation split holds 24 phishing rows, too few to choose a model. Hold out the
+    newest val_ratio of its training phishing instead, keeping each registered domain on one side.
+    Benign rows and the test split keep the authors' assignment."""
+    phish = sorted((r for r in rows if r["label"] == "phishing" and r["split"] == "train"),
+                   key=lambda r: (r["date"], r["url"]))
+    cut = phish[int(len(phish) * (1 - val_ratio))]["date"] if phish else ""
+    late = {parse_url(r["url"]).registered_domain for r in phish if r["date"] >= cut}
+
+    def urls(label: str, split: str) -> list:
+        return [r["url"] for r in rows if r["label"] == label and r["split"] == split]
+
+    return {
+        "phish_train": [r["url"] for r in phish if parse_url(r["url"]).registered_domain not in late],
+        "phish_val": [r["url"] for r in phish if parse_url(r["url"]).registered_domain in late],
+        "phish_test": urls("phishing", "test"),
+        "benign_train": urls("benign", "train"),
+        "benign_val": urls("benign", "val"),
+        "benign_test": urls("benign", "test"),
+    }
