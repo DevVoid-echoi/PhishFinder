@@ -41,7 +41,7 @@ git clone https://github.com/DevVoid-echoi/PhishFinder.git
 cd PhishFinder
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m pytest                                    # 258 tests, no network access
+python -m pytest                                    # 262 tests, no network access
 ```
 
 Check a URL, a domain's registration age, or its TLS certificate:
@@ -163,6 +163,7 @@ PhishFinder/
 ├── scripts/
 │   ├── download_feeds.py   fetch phishing feeds (atomic writes, retries)
 │   ├── collect_fresh.py    record the first-seen date of every new phishing entry
+│   ├── collect_signals.py  domain age (RDAP) and TLS state of today's new hosts
 │   ├── update_tranco.py    refresh the allowlist and the benign evaluation set
 │   ├── evaluate.py         false alarms and detection; --calibrate learns weights
 │   └── evaluate_phishvn.py measurement on Vietnamese phishing (PhishVN)
@@ -172,7 +173,7 @@ PhishFinder/
 │   └── eval/
 │       ├── benign_vn.txt   hand-checked Vietnamese sites
 │       └── tranco_id.txt   Tranco list ID used for the published numbers
-├── tests/                  258 pytest tests; the network is blocked in every test
+├── tests/                  262 pytest tests; the network is blocked in every test
 ├── .github/                CI on Python 3.12 and 3.14, coverage, Dependabot
 ├── note.md                 design decisions, limitations, results log
 └── README.md
