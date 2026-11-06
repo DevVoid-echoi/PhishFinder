@@ -1,5 +1,6 @@
 import csv
 import random
+from datetime import date
 from pathlib import Path
 
 from app.parser import parse_url
@@ -128,3 +129,23 @@ def phishvn_splits(rows: list, val_ratio: float = 0.2) -> dict:
         "benign_val": urls("benign", "val"),
         "benign_test": urls("benign", "test"),
     }
+
+
+def load_signals(path: Path) -> dict:
+    """signals.csv (collect_signals) -> {url: {"domain_age", "tls"}}: the findings the server would
+    have returned on the lookup day, in the form calibrate(extra=...) expects."""
+    extra = {}
+    if not path.exists():
+        return extra
+    with open(path, encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            day = date.fromisoformat(row["looked_up"])
+            fired = set()
+            # Same limits as the server: domain under 180 days, invalid or under-7-day certificate
+            if row["created"] and 0 <= (day - date.fromisoformat(row["created"])).days < 180:
+                fired.add("domain_age")
+            if row["tls"] == "invalid" or (row["cert_issued"] and
+                                           0 <= (day - date.fromisoformat(row["cert_issued"])).days < 7):
+                fired.add("tls")
+            extra[row["url"]] = fired
+    return extra
