@@ -226,3 +226,4 @@ data/eval/benign_private.txt
 data/eval/benign.txt
 data/tranco_top.csv
 alerts.jsonl
+data/eval/signals.csv
