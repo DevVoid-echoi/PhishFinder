@@ -8,7 +8,7 @@ import logging
 import re
 import threading
 import time
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from app.heuristics import SHORTENERS
 from app.parser import parse_url
@@ -43,6 +43,44 @@ def normalize_short_url (raw: str) -> str:
     if (p.hostname or "") not in SHORTENERS:
         raise ValueError("Only links of known URL shorteners are expanded")
     return url
+
+def normalize_page_url(raw: str) -> str:
+    """Deep analysis takes a full URL, because the user turned it on. Drop the #fragment, which a
+    browser never sends to a web server either, and refuse user names or passwords in the URL."""
+    url = raw.strip()
+    p = urlsplit(url)
+    if p.scheme not in ("http", "https") or not p.hostname or p.username or p.password:
+        raise ValueError("Invalid page URL")
+    return urlunsplit(p._replace(fragment=""))
+
+class BudgetExhausted(Exception):
+    """Today's AI calls are used up"""
+
+class DailyBudget:
+    """At most `limit` AI calls per UTC day, so a burst of requests cannot run up the bill.
+    Each server process counts on its own; the spend limit in the Anthropic Console is the hard cap."""
+    def __init__(self, limit: int, clock=time.time):
+        self.limit, self.clock = limit, clock
+        self.day, self.used = None, 0
+        self._lock = threading.Lock()
+
+    def allow(self) -> bool:
+        with self._lock:
+            today = int(self.clock() // 86400)
+            if today != self.day:
+                self.day, self.used = today, 0
+            if self.used >= self.limit:
+                return False
+            self.used += 1
+            return True
+
+    def limit_calls(self, fn):
+        """Wrap fn so that only real calls spend the budget; when it is spent raise instead"""
+        def limited(*args):
+            if not self.allow():
+                raise BudgetExhausted()
+            return fn(*args)
+        return limited
 
 class TTLCache:
     """In-memory cache with expiry, safe to use from FastAPI's worker threads."""
