@@ -4,7 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import main
-from app.api_core import TTLCache
+from app.api_core import DailyBudget, TTLCache
+from tests.test_page_analysis import AI_PHISH, PHISH_HTML
 
 REPORT = {"host": "vcb-xacthuc.com", "shown_level": "dangerous",
           "verdict": "false_positive", "extension_version":"0.1.0"}
@@ -98,3 +99,68 @@ def test_false_positive_report_logs_no_alert(client, caplog):
     with caplog.at_level("WARNING", logger=main.log.name):
         client.post("/v1/report", json=REPORT)
     assert not any(m.startswith("ALERT ") for m in caplog.messages)
+
+@pytest.fixture
+def page_client(client, monkeypatch):
+    """The page download and Claude are fakes that record their calls"""
+    calls = {"follow": [], "ai": 0}
+
+    def fake_follow(url, method):
+        calls["follow"].append((url, method))
+        return {"chain": [url], "final": url, "error": None, "status": 200, "html": PHISH_HTML}
+
+    def fake_claude(system, user, schema):
+        calls["ai"] += 1
+        return json.dumps(AI_PHISH)
+
+    monkeypatch.setattr(main, "follow", fake_follow)
+    monkeypatch.setattr(main, "claude_extract", fake_claude)
+    monkeypatch.setattr(main, "page_cache", TTLCache())
+    monkeypatch.setattr(main, "ai_budget", DailyBudget(limit=1))
+
+    return client, calls
+
+def test_analyze_page_calls_ai_once_and_caches(page_client):
+    client, calls = page_client
+    r1 = client.post("/v1/analyze-page", json={"url": "https://vcb-secure.top/login#otp"}).json()
+    r2 = client.post("/v1/analyze-page", json={"url": "https://vcb-secure.top/login"}).json()
+    assert r1["ai_summary"] == AI_PHISH["summary"]
+    assert {"page_brand_login", "ai_impersonation_credentials"} <= {x["rule"] for x in r1["reasons"]}
+    assert (r1["cached"], r2["cached"]) == (False, True)
+    assert calls == {"follow": [("https://vcb-secure.top/login", "GET")], "ai": 1}
+
+def test_spent_budget_keeps_the_rules(page_client):
+    client, calls = page_client
+    client.post("/v1/analyze-page", json={"url": "https://a.top/login"})
+    r = client.post("/v1/analyze-page", json={"url": "https://b.top/login"}).json()
+    assert r["ai_summary"] is None and calls["ai"] == 1
+    assert "page_brand_login" in {x["rule"] for x in r["reasons"]}
+
+def test_analyze_page_without_a_key(page_client, monkeypatch):
+    client, calls = page_client
+    monkeypatch.setattr(main, "claude_extract", None)
+    r = client.post("/v1/analyze-page", json={"url": "https://a.top/login"}).json()
+    assert r["ai_summary"] is None and r["reasons"] and calls["ai"] == 0
+
+def test_analyze_page_reports_a_failed_download(page_client, monkeypatch):
+    client, _ = page_client
+    monkeypatch.setattr(main, "follow", lambda url, method: {"chain": [url], "final": None,
+                                                             "error": "Blocked: a.top is internal"})
+    r = client.post("/v1/analyze-page", json={"url": "https://a.top/login"}).json()
+    assert (r["reasons"], r["error"]) == ([], "Blocked: a.top is internal")
+
+def test_analyze_page_never_logs_the_url(page_client, caplog):
+    client, _ = page_client
+    with caplog.at_level("INFO", logger=main.log.name):
+        client.post("/v1/analyze-page", json={"url": "https://a.top/reset?token=s3cret"})
+    assert caplog.messages and "s3cret" not in caplog.text and "a.top" not in caplog.text
+
+@pytest.mark.parametrize("url", ["ftp://a.top/", "https://user:pw@a.top/", "a.top/login"])
+def test_analyze_page_rejects_bad_urls(page_client, url):
+    client, calls = page_client
+    assert client.post("/v1/analyze-page", json={"url": url}).status_code == 400
+    assert calls["follow"] == []
+
+def test_analyze_page_rejects_a_huge_url(page_client):
+    client, _ = page_client
+    assert client.post("/v1/analyze-page", json={"url": "https://a.top/" + "x" * 3000}).status_code == 422
