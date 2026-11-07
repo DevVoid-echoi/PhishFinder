@@ -19,7 +19,7 @@ SENSITIVE = ("password", "otp", "card", "id_number")
 AI_SCHEMA = {
     "type": "object",
     "properties": {
-        "impersonated_brand": {"type": ["string", "null"]},
+        "impersonated_brand": {"anyOf": [{"type": "string"}, {"type": "null"}]},
         "asks_for": {"type": "array", "items": {"type": "string", "enum": ASK_TYPES}},
         "urgency_or_threat": {"type": "boolean"},
         "summary": {"type": "string"},

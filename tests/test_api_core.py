@@ -3,7 +3,12 @@ import threading
 
 import pytest
 
-from app.api_core import TTLCache, domain_reputation, normalize_host
+from app.api_core import (BudgetExhausted,
+                          DailyBudget,
+                          TTLCache,
+                          domain_reputation,
+                          normalize_host,
+                          normalize_page_url)
 
 
 @pytest.mark.parametrize("raw, host", [
@@ -94,3 +99,27 @@ def test_failed_check_is_logged(caches, caplog):
     domain_reputation("example.com", broken, lambda h: None, *caches)
     assert "check domain_age failed" in caplog.text
     assert "example.com" not in caplog.text
+
+def test_budget_resets_each_day():
+    now = [0]
+    b = DailyBudget(limit=2, clock=lambda: now[0])
+    assert [b.allow(), b.allow(), b.allow()] == [True, True, False]
+    now[0] = 86400
+    assert b.allow()
+
+def test_budget_stops_calls_when_spent():
+    calls = []
+    limited = DailyBudget(limit=1).limit_calls(lambda *a: calls.append(a) or "ok")
+    assert limited("system", "page") == "ok"
+    with pytest.raises(BudgetExhausted):
+        limited("system", "page")
+    assert calls == [("system", "page")]
+
+def test_normalize_page_url_drops_the_fragment():
+    assert normalize_page_url(" https://a.com/login?x=1#token ") == "https://a.com/login?x=1"
+
+@pytest.mark.parametrize("bad", ["ftp://a.com/", "javascript:alert(1)", "https://user:pw@a.com/",
+                                 "https:///path", "a.com/login"])
+def test_normalize_page_url_rejects(bad):
+    with pytest.raises(ValueError):
+        normalize_page_url(bad)

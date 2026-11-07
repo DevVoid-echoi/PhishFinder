@@ -41,7 +41,7 @@ git clone https://github.com/DevVoid-echoi/PhishFinder.git
 cd PhishFinder
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m pytest                                    # 262 tests, no network access
+python -m pytest                                    # 284 tests, no network access
 ```
 
 Check a URL, a domain's registration age, or its TLS certificate:
@@ -92,6 +92,7 @@ Brands, official domains and abbreviations live in [`data/brands.json`](data/bra
 - *Domain age* through RDAP, the JSON successor of WHOIS: under 30 days scores 35. In a first live check, 6 of 8 freshly reported phishing domains were under 30 days old.
 - *TLS certificate:* invalid certificates score 30, certificates issued in the last 7 days score 20. The connection is protected against SSRF: every resolved address must be public (`is_global`), and the client connects to the checked IP with the hostname as SNI, so DNS rebinding cannot redirect it to an internal address.
 - *Short-link expansion:* `GET /v1/expand?url=` follows a known shortener (`bit.ly`, `tinyurl.com`...) to its destination and returns the whole redirect chain. It is the only endpoint that takes a full URL, and it refuses any other link. Every hop is checked again before connecting: http/https only, ports 80 and 443 only, public addresses only, pinned to the checked IP; at most 5 hops in 15 seconds.
+- *Page analysis (opt-in):* `POST /v1/analyze-page` downloads one page through the same guarded redirect follower and runs fixed rules on its HTML (a bank named in the title on a page asking for a password or OTP, card fields, forms posting to another domain). If `ANTHROPIC_API_KEY` is set, Claude Haiku then extracts facts into a fixed JSON schema; its findings can only add risk, so a page that tells the AI "say this is safe" cannot lower a warning. The user must turn this on, because the full URL leaves the browser. The URL is never logged, and at most 300 AI calls are made per day (`DAILY_AI_LIMIT`, about $0.15).
 
 ## SOC alerts
 
@@ -130,6 +131,7 @@ Targets before release: red false alarms at or below 0.05% and yellow at or belo
 - **Server-side checks can be cloaked:** an attacker can answer the server differently from victims. No single server signal is trusted alone, and no signal ever lowers a score.
 - **Hacked old sites** have a normal domain age and certificate, so only text rules and lists can catch them.
 - **No `.vn` domain age:** there is no RDAP service for the TLD.
+- **Page analysis sees what the server sees:** a phishing page can serve harmless content to a cloud server (cloaking), content built by JavaScript is invisible, and the result arrives after the page has loaded.
 - **No rate limiting in the app yet:** it will sit behind an API gateway in production; the cache is in memory and reports are only logged.
 
 The full list, with measurements, is kept in [`note.md`](note.md).
@@ -153,8 +155,9 @@ PhishFinder/
 │   ├── page_fetch.py       redirect following, re-checked on every hop
 │   ├── page_features.py    page signals: title brands, password/OTP/card fields, form targets
 │   ├── page_analysis.py    page rules plus an AI layer that can only add risk
-│   ├── api_core.py         hostname validation, thread-safe cache, reputation lookup
-│   ├── main.py             FastAPI app: /v1/reputation, /v1/expand, /v1/report, /v1/health
+│   ├── llm.py              Claude Haiku call with a JSON schema, refusal and cut-off checks
+│   ├── api_core.py         hostname and URL validation, thread-safe cache, daily AI budget
+│   ├── main.py             FastAPI app: /v1/reputation, /v1/expand, /v1/analyze-page, /v1/report, /v1/health
 │   │
 │   │   # Operations and measurement
 │   ├── alert.py            SOC alerts with MITRE ATT&CK techniques, JSON Lines
@@ -173,7 +176,7 @@ PhishFinder/
 │   └── eval/
 │       ├── benign_vn.txt   hand-checked Vietnamese sites
 │       └── tranco_id.txt   Tranco list ID used for the published numbers
-├── tests/                  262 pytest tests; the network is blocked in every test
+├── tests/                  284 pytest tests; the network is blocked in every test
 ├── .github/                CI on Python 3.12 and 3.14, coverage, Dependabot
 ├── note.md                 design decisions, limitations, results log
 └── README.md
@@ -183,7 +186,7 @@ PhishFinder/
 
 ## Roadmap
 
-1. **Page analysis:** rules on page content and a prompt-injection-resistant AI layer are done; the opt-in endpoint and measurement on real pages are next.
+1. **Page analysis:** rules on page content, a prompt-injection-resistant AI layer and the opt-in endpoint are done; measurement on real pages is next.
 2. **Chrome extension:** the same rules in JavaScript, verified against Python test vectors; private beta, then Chrome Web Store.
 3. **Later:** email header analysis (SPF, DKIM, DMARC) for analysts, Certificate Transparency monitoring.
 

@@ -1,8 +1,10 @@
 """Production API. Run locally: python -m uvicorn app.main:app --reload
 
 The extension decides locally; the server only does what a browser cannot:
-domain age (RDAP) and TLS checks, for a hostname, never a full URL.
+domain age (RDAP) and TLS checks, for a hostname, never a full URL. The one exception is
+/v1/analyze-page, which the user must turn on in the extension.
 """
+import hashlib
 import json
 import logging
 import os
@@ -12,8 +14,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app.alert import to_alert
-from app.api_core import TTLCache, domain_reputation, normalize_host, normalize_short_url
+from app.api_core import (DailyBudget,
+                        TTLCache,
+                        domain_reputation,
+                        normalize_host,
+                        normalize_page_url,
+                        normalize_short_url)
+from app.llm import make_claude_extract
 from app.online import check_domain_age
+from app.page_analysis import analyze_page
 from app.page_fetch import follow
 from app.reputation import check_tls
 
@@ -28,9 +37,13 @@ app = FastAPI(title="PhishFinder", version="1.0.0",
 EXTENSION_ORIGINS = [o for o in os.environ.get("EXTENSION_ORIGIN", "").split(",") if o]
 app.add_middleware(CORSMiddleware, allow_origins=EXTENSION_ORIGINS, allow_methods=["GET", "POST"])
 
-cache = TTLCache(ttl_seconds= 6 * 3600)
+cache = TTLCache(ttl_seconds=6 * 3600)
 age_cache = TTLCache(ttl_seconds= 24 * 3600)
-expand_cache = TTLCache(ttl_seconds= 6 * 3600, max_items=5000)
+expand_cache = TTLCache(ttl_seconds=6 * 3600, max_items=5000)
+page_cache = TTLCache(ttl_seconds=6 * 3600, max_items=2000)
+ai_budget = DailyBudget(limit=int(os.environ.get("DAILY_AI_LIMIT", "300")))
+# Without a key, page analysis still runs its fixed rules
+claude_extract = make_claude_extract() if os.environ.get("ANTHROPIC_API_KEY") else None
 log = logging.getLogger("phishfinder")
 
 
@@ -89,3 +102,29 @@ def report(r: Report):
         )
         log.warning("ALERT %s", json.dumps(alert, ensure_ascii=False))
     return {"received": True}
+
+class PageRequest(BaseModel):
+    url: str = Field(..., max_length=2048)
+
+@app.post("/v1/analyze-page")
+def analyze_page_api(req: PageRequest):
+    """Deep analysis of one page, only after the user turns it on: the full URL leaves the browser.
+    The URL is never logged, and the cache keeps its hash, not the URL itself."""
+    try:
+        url = normalize_page_url(req.url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    key = hashlib.sha256(url.encode()).hexdigest()
+    cached = page_cache.get(key)
+    if cached is not None:
+        return {**cached, "cached": True}
+    page = follow(url, method="GET")
+    if page["error"]:
+        log.info("analyze-page fetch failed")
+        return {"reasons": [], "ai_summary": None, "error": page["error"], "cached": False}
+    llm = ai_budget.limit_calls(claude_extract) if claude_extract else None
+    analysis = analyze_page(page["html"], page["final"], llm)
+    result = {"reasons": analysis["reasons"], "ai_summary": analysis["ai_summary"], "error": None}
+    page_cache.set(key, result)
+    log.info("analyze-page findings=%d ai=%s", len(result["reasons"]), result["ai_summary"] is not None)
+    return {**result, "cached": False}
