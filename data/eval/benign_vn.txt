@@ -1,4 +1,4 @@
-# Legitimate Vietnamese sites: the group most likely to be flagged by mistake.
+# Legitimate sites, mostly Vietnamese: the group most likely to be flagged by mistake.
 # One URL or domain per line. Verify each entry yourself before adding it.
 # Banks
 https://vietcombank.com.vn
@@ -28,3 +28,140 @@ https://vnu.edu.vn
 https://chinhphu.vn
 https://gdt.gov.vn
 https://vneid.gov.vn
+# Added 2026-11-09 from a compiled list of 639 domains: only domains missing from the
+# benign sets and the Tranco top 10,000, each answering over HTTPS in a browser that day.
+# Government, police and public services
+https://vietnam.gov.vn
+https://vbpl.vn
+https://quochoi.vn
+https://vpctn.gov.vn
+https://toaan.gov.vn
+https://vksndtc.gov.vn
+https://sav.gov.vn
+https://thanhtra.gov.vn
+https://mod.gov.vn
+https://moha.gov.vn
+https://mae.gov.vn
+https://moc.gov.vn
+https://mt.gov.vn
+https://most.gov.vn
+https://mst.gov.vn
+https://bvhttdl.gov.vn
+https://sbv.gov.vn
+https://vpcp.chinhphu.vn
+https://customs.gov.vn
+https://dichvucong.bocongan.gov.vn
+https://csgt.vn
+https://csgt.bocongan.gov.vn
+https://xuatnhapcanh.gov.vn
+https://ssc.gov.vn
+https://nso.gov.vn
+https://tinnhiemmang.vn
+https://chongluadao.vn
+https://vncert.vn
+https://dangkykinhdoanh.gov.vn
+https://muasamcong.mpi.gov.vn
+https://thisinh.thitotnghiepthpt.edu.vn
+https://evn.com.vn
+https://dsvn.vn
+https://vietqr.net
+https://napas.com.vn
+https://cic.gov.vn
+https://haiphong.gov.vn
+https://hue.gov.vn
+https://dichvucong.hanoi.gov.vn
+https://cand.com.vn
+https://muasamcong.mof.gov.vn
+https://cand.vn
+# Banks, payments and telecom
+https://sacombank.com.vn
+https://vib.com.vn
+https://msb.com.vn
+https://ocb.com.vn
+https://seabank.com.vn
+https://eximbank.com.vn
+https://lpbank.com.vn
+https://abbank.vn
+https://namabank.com.vn
+https://ncb-bank.vn
+https://pvcombank.com.vn
+https://vietabank.com.vn
+https://kienlongbank.com
+https://baovietbank.vn
+https://saigonbank.com.vn
+https://vietbank.com.vn
+https://pgbank.com.vn
+https://scb.com.vn
+https://shinhan.com.vn
+https://hsbc.com.vn
+https://uob.com.vn
+https://woori.com.vn
+https://cake.vn
+https://timo.vn
+https://viettelmoney.vn
+https://shopeepay.vn
+https://vnptmoney.vn
+https://vinaphone.com.vn
+https://vnptpay.vn
+https://www.shb.com.vn/
+# Shops, fashion and services
+https://ticketbox.vn
+https://be.com.vn
+https://xanhsm.com
+https://canifa.com
+https://ivymoda.com
+https://routine.vn
+https://yody.vn
+https://owen.vn
+https://coolmate.me
+https://decathlon.vn
+https://supersports.com.vn
+https://myshoes.vn
+https://bitis.com.vn
+https://ananas.vn
+https://bitas.com.vn
+https://juno.vn
+https://vascara.com
+https://giaythuongdinh.com.vn
+https://vinagiay.vn
+https://greensm.com
+# Vietnamese technology and security companies
+https://zalo.vn
+https://vng.com.vn
+https://bkav.com.vn
+https://vncs.vn
+https://viettelcybersecurity.com
+https://bkav.com
+# Global developer and security tools (not Vietnamese)
+https://mingw-w64.org
+https://ninja-build.org
+https://flask.palletsprojects.com
+https://fastapi.tiangolo.com
+https://mobaxterm.mobatek.net
+https://pandas.pydata.org
+https://zaproxy.org
+https://ghidra-sre.org
+https://hex-rays.com
+https://phishtank.org
+https://openphish.com
+https://suricata.io
+# Global sportswear and luxury brands, often faked by scam shops (not Vietnamese)
+https://adidas.com.vn
+https://mlb-korea.com
+https://goyard.com
+https://jordan.com
+https://swoosh.nike
+https://fila.com
+https://kappa-usa.com
+https://umbro.com
+https://lecoqsportif.com
+https://ellesse.com
+https://champion.com
+https://russellathletic.com
+https://yonex.com
+https://lining.com
+https://anta.com
+https://kswiss.com
+https://dcshoes.com
+https://babolat.com
+https://en.lining.com
