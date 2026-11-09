@@ -227,3 +227,5 @@ data/eval/benign.txt
 data/tranco_top.csv
 alerts.jsonl
 data/eval/signals.csv
+data/eval/page_sample.csv
+data/eval/pages.csv
