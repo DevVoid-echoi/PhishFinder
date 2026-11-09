@@ -35,7 +35,9 @@ def resolve_public_ips(hostname: str) -> list:
         infos = socket.getaddrinfo(hostname, PORT, type=socket.SOCK_STREAM)
     except(socket.gaierror, UnicodeError):
         return []
-    ips = sorted({info[4][0] for info in infos})
+    # IPv4 first: many machines (a VM, a cloud function) have no IPv6 route to the internet,
+    # and callers try the first addresses only
+    ips = sorted({info[4][0] for info in infos}, key=lambda ip: (":" in ip, ip))
     if not ips or not all(is_public_address(ip) for ip in ips):
         return []
     return ips

@@ -81,6 +81,18 @@ def test_three_letter_brand_as_token(link):
 def test_short_brand_needs_an_exact_token(link):
     assert "check_lookalike" not in rules_of(link)
 
+
+# Real banks and wallets whose names contain another brand (vietbank, shopee)
+@pytest.mark.parametrize("link", ["https://baovietbank.vn", "https://vietabank.com.vn", "https://shopeepay.vn"])
+def test_official_name_containing_another_brand(link):
+    assert "check_lookalike" not in rules_of(link)
+
+
+@pytest.mark.parametrize("link", ["http://lpbank-xacthuc.com", "http://kienlongbank.secure-login.top",
+                                  "http://pvcombank-ebanking.vip"])
+def test_added_bank_brands_are_protected(link):
+    assert "check_lookalike" in rules_of(link)
+
 @pytest.mark.parametrize("link", [
     "http://scb.com.vn-ax.xyz", "http://scb.com-vn.vip", "http://techcombank.vn-iy.life",
     "http://mail.com.vn.evil.top",
