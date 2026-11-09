@@ -15,9 +15,15 @@ class Handler(BaseHTTPRequestHandler):
     routes = {"/short": "/hop2", "/hop2": "/landing", "/loop": "/loop",
               "/metadata": "http://169.254.169.254/latest/meta-data/",
               "/rebind": "http://rebind.test/landing", "/port": "http://fake.test:6379/",
-              "/js": "javascript:alert(1)"}
+              "/js": "javascript:alert(1)", "/badport": "http://fake.test:99999/"}
 
     def _answer(self, with_body):
+        if self.path == "/headers":  # broken HTTP: more headers than a client accepts
+            self.send_response(200)
+            for i in range(150):
+                self.send_header(f"X-Junk-{i}", "x")
+            self.end_headers()
+            return
         target = self.routes.get(self.path)
         if target:
             self.send_response(302)
@@ -88,6 +94,12 @@ def test_redirect_to_a_name_that_resolves_internally_is_blocked(local, monkeypat
 
 def test_redirect_to_another_port_is_blocked(local):
     assert "port 6379" in local("/port")["error"]
+
+def test_redirect_to_an_invalid_port_is_blocked(local):
+    assert local("/badport")["error"] == "Blocked: invalid port"
+
+def test_broken_http_is_a_failed_connection(local):
+    assert local("/headers", method="GET")["error"] == "Connection failed: HTTPException"
 
 def test_redirect_to_another_scheme_is_blocked(local):
     assert "Unsupported scheme" in local("/js")["error"]

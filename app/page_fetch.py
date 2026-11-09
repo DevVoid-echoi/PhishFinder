@@ -61,8 +61,12 @@ def follow(url: str, method: str = "HEAD", max_hops: int = 5, timeout: float = 5
         p = urlsplit(url)
         if p.scheme not in ("http", "https") or not p.hostname:
             return {"chain": chain, "final": None, "error": f"Unsupported scheme: {p.scheme or 'none'}"}
-        if (p.port or (443 if p.scheme == "https" else 80)) not in ports:
-            return {"chain": chain, "final": None, "error": f"Blocked: port {p.port} is not allowed"}
+        try:
+            port = p.port or (443 if p.scheme == "https" else 80)
+        except ValueError:  # a Location header can carry a port such as 99999
+            return {"chain": chain, "final": None, "error": "Blocked: invalid port"}
+        if port not in ports:
+            return {"chain": chain, "final": None, "error": f"Blocked: port {port} is not allowed"}
         # Check AGAIN at every hop: a short link may redirect to an internal address
         ips = resolve(p.hostname)
         if not ips:
@@ -73,7 +77,8 @@ def follow(url: str, method: str = "HEAD", max_hops: int = 5, timeout: float = 5
             return {"chain": chain, "final": None, "error": f"Gave up after {deadline:.0f} s"}
         try:
             status, location, ctype, body = _request(p, ips[0], method, min(timeout, remaining), max_bytes) 
-        except OSError as e:
+        # A hostile server can also break HTTP itself: too many headers, a bad status line
+        except (OSError, http.client.HTTPException) as e:
             return {"chain": chain, "final": None, "error": f"Connection failed: {type(e).__name__}"}
         if status in REDIRECT_CODES and location:
             if len(chain) > max_hops:
