@@ -42,6 +42,15 @@ def test_measure_one_records_a_failed_download(monkeypatch):
     assert (row["error"], row["rules"], row["points"]) == ("Connection failed: TimeoutError", "", 0)
 
 
+def test_measure_one_survives_an_unexpected_error(monkeypatch):
+    def broken(url, method):
+        raise RuntimeError("bug")
+
+    monkeypatch.setattr(mp, "follow", broken)
+    row = mp.measure_one("https://odd.top/", "phishing")
+    assert (row["error"], row["rules"]) == ("Unexpected error: RuntimeError", "")
+
+
 def test_summary_separates_rules_from_ai():
     rows = [{"label": "phishing", "error": "", "rules": "ai_urgency;page_brand_login", "ai_answered": "True"},
             {"label": "phishing", "error": "", "rules": "ai_urgency", "ai_answered": "True"},

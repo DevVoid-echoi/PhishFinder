@@ -56,11 +56,14 @@ def pick_sample(phishing: list, benign: list, today: date, count: int) -> list:
 
 
 def measure_one(url: str, label: str, llm_fn=None) -> dict:
-    page = follow(url, method="GET")
-    if page["error"]:
-        return {"url": url, "label": label, "error": page["error"], "rules": "", "points": 0,
-                "ai_answered": False}
-    result = analyze_page(page["html"], page["final"], llm_fn)
+    failed = {"url": url, "label": label, "rules": "", "points": 0, "ai_answered": False}
+    try:
+        page = follow(url, method="GET")
+        if page["error"]:
+            return {**failed, "error": page["error"]}
+        result = analyze_page(page["html"], page["final"], llm_fn)
+    except Exception as e:  # one broken page must not stop a run of 400
+        return {**failed, "error": f"Unexpected error: {type(e).__name__}"}
     rules = sorted(r["rule"] for r in result["reasons"])
     return {"url": url, "label": label, "error": "", "rules": ";".join(rules),
             "points": sum(r["points"] for r in result["reasons"]), "ai_answered": result["ai_summary"] is not None}
