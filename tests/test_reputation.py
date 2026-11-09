@@ -33,6 +33,10 @@ def fake_getaddrinfo(*ips):
 def test_is_public_address(ip, public):
     assert is_public_address(ip) is public
 
+def test_resolve_puts_ipv4_first(monkeypatch):
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo("2a03:2880::1", "57.144.0.1"))
+    assert resolve_public_ips("example.com") == ["57.144.0.1", "2a03:2880::1"]
+
 def test_resolve_keeps_only_fully_public_hosts(monkeypatch):
     monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo("8.8.8.8", "1.1.1.1"))
     assert resolve_public_ips("example.com") == ["1.1.1.1", "8.8.8.8"]
