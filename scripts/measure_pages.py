@@ -18,6 +18,7 @@ from pathlib import Path
 
 from app.evaluation import WARN, load_benign, load_phishing
 from app.page_analysis import analyze_page
+from app.page_features import extract
 from app.page_fetch import follow
 from app.parser import parse_url
 from app.scorer import analyze
@@ -25,8 +26,10 @@ from app.scorer import analyze
 EVAL = Path(__file__).resolve().parent.parent / "data" / "eval"
 SAMPLE = EVAL / "page_sample.csv"
 OUT = EVAL / "pages.csv"
-FIELDS = ["url", "label", "error", "rules", "points", "ai_answered"]
-FRESH_DAYS = 2
+FIELDS = ["url", "label", "error", "rules", "points", "ai_answered",
+          "has_password", "has_otp_or_card", "text_len", "html_len", "brands_in_title", "title"]
+FRESH_DAYS = 2  # most phishing pages are taken down within a few days
+LITTLE_TEXT = 200  # characters: a page this empty is usually built by JavaScript
 
 
 def one_per_domain(urls: list) -> list:
@@ -62,11 +65,23 @@ def measure_one(url: str, label: str, llm_fn=None) -> dict:
         if page["error"]:
             return {**failed, "error": page["error"]}
         result = analyze_page(page["html"], page["final"], llm_fn)
+        # analyze_page drops the page text, so extract again to measure it
+        f = extract(page["html"], page["final"])
     except Exception as e:  # one broken page must not stop a run of 400
         return {**failed, "error": f"Unexpected error: {type(e).__name__}"}
     rules = sorted(r["rule"] for r in result["reasons"])
     return {"url": url, "label": label, "error": "", "rules": ";".join(rules),
-            "points": sum(r["points"] for r in result["reasons"]), "ai_answered": result["ai_summary"] is not None}
+            "points": sum(r["points"] for r in result["reasons"]), "ai_answered": result["ai_summary"] is not None,
+            "has_password": f["has_password"], "has_otp_or_card": f["has_otp"] or f["has_card"],
+            "text_len": len(f["text"]), "html_len": len(page["html"]),
+            "brands_in_title": ";".join(f["brands_in_title"]), "title": safe_title(f["title"])}
+
+
+def safe_title(title: str) -> str:
+    """The title is written by the attacker. Spreadsheets run a cell that starts with = + - or @
+    as a formula, so such a title gets a leading quote."""
+    title = " ".join(title.split())[:80]
+    return "'" + title if title[:1] in ("=", "+", "-", "@") else title
 
 
 def summarize(rows: list) -> list:
@@ -84,6 +99,12 @@ def summarize(rows: list) -> list:
                      f"{len(by_rules)}, by rules or AI {len(by_any)}; AI answered {answered}")
         counts = Counter(x for r in loaded for x in r["rules"].split(";") if x)
         lines += [f"  {rule}: {n}" for rule, n in counts.most_common()]
+        missed = [r for r in loaded if not r["rules"]]
+        if missed:
+            password = sum(1 for r in missed if str(r.get("has_password")) == "True")
+            empty = sum(1 for r in missed if int(r.get("text_len") or 0) < LITTLE_TEXT)
+            lines.append(f"  not flagged {len(missed)}: with a password field {password}, "
+                         f"with under {LITTLE_TEXT} characters of text {empty}")
         errors = Counter(r["error"].split(":")[0] for r in group if r["error"])
         lines += [f"  not downloaded, {err}: {n}" for err, n in errors.most_common()]
     return lines

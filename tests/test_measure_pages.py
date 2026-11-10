@@ -32,7 +32,17 @@ def test_measure_one_saves_rules_not_html(monkeypatch):
     row = mp.measure_one("https://vcb-secure.top/login", "phishing")
     assert row["rules"] == "page_asks_otp_card;page_brand_login;page_form_external"
     assert (row["points"], row["error"], row["ai_answered"]) == (90, "", False)
+    assert (row["has_password"], row["has_otp_or_card"], row["brands_in_title"]) == (True, True, "vietcombank")
+    assert row["title"] == "Vietcombank - Xác thực tài khoản"
+    assert 0 < row["text_len"] < row["html_len"]
     assert "html" not in row
+
+
+def test_title_cannot_start_a_formula(monkeypatch):
+    html = '<title>=HYPERLINK("http://evil.top")</title><p>hi</p>'
+    monkeypatch.setattr(mp, "follow", lambda url, method: {"chain": [url], "final": url, "error": None,
+                                                           "status": 200, "html": html})
+    assert mp.measure_one("https://x.top/", "phishing")["title"] == "'=HYPERLINK(\"http://evil.top\")"
 
 
 def test_measure_one_records_a_failed_download(monkeypatch):
@@ -59,3 +69,11 @@ def test_summary_separates_rules_from_ai():
     assert lines[0] == ("phishing: 2 of 3 pages downloaded; flagged by rules 1, by rules or AI 2; "
                         "AI answered 2")
     assert "  not downloaded, Connection failed: 1" in lines
+
+
+def test_summary_explains_pages_that_fired_nothing():
+    rows = [{"label": "phishing", "error": "", "rules": "", "ai_answered": "False",
+             "has_password": "True", "text_len": "1500"},
+            {"label": "phishing", "error": "", "rules": "", "ai_answered": "False",
+             "has_password": "False", "text_len": "12"}]
+    assert "  not flagged 2: with a password field 1, with under 200 characters of text 1" in mp.summarize(rows)
