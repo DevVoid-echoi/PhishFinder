@@ -77,3 +77,19 @@ def test_summary_explains_pages_that_fired_nothing():
             {"label": "phishing", "error": "", "rules": "", "ai_answered": "False",
              "has_password": "False", "text_len": "12"}]
     assert "  not flagged 2: with a password field 1, with under 200 characters of text 1" in mp.summarize(rows)
+
+
+def test_labelled_pages_are_today_only():
+    rows = [{"seen": "2026-11-11", "url": "https://a.top/", "brand": "tiki", "asks": "password", "notes": ""},
+            {"seen": "2026-11-10", "url": "https://b.top/", "brand": "none", "asks": "otp", "notes": ""}]
+    assert mp.pick_labelled(rows, "2026-11-11") == [
+        {"url": "https://a.top/", "label": "phishing_vn", "expected_brand": "tiki", "expected_asks": "password"}]
+
+
+def test_summary_compares_the_screenshot_with_the_html():
+    rows = [{"label": "phishing_vn", "error": "", "rules": "", "ai_answered": "False", "has_password": "True",
+             "has_otp_or_card": "False", "text_len": "900", "expected_asks": "password"},
+            {"label": "phishing_vn", "error": "", "rules": "", "ai_answered": "False", "has_password": "False",
+             "has_otp_or_card": "False", "text_len": "40", "expected_asks": "password;otp"}]
+    assert ("  screenshot vs downloaded HTML: password field 1 of 2, OTP or card field 0 of 1"
+            in mp.summarize(rows))
