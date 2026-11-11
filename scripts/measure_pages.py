@@ -1,9 +1,10 @@
 """Measure page analysis on live pages. Run the measure command inside a virtual machine.
 
-Three commands, so the virtual machine needs only the public code and one small file:
+Four commands, so the virtual machine needs only the public code and one small file:
   python -m scripts.measure_pages sample [count]   on your computer, no network: pick the pages
   python -m scripts.measure_pages measure [--ai]   in the VM: download each page, run the page rules
   python -m scripts.measure_pages report           anywhere: print the results again
+  python -m scripts.measure_pages labelled         on your computer: today's hand-labelled ChongLuaDao pages
 
 Phishing pages die within days, so measure on the day you sample. Only the rules that fired are
 saved, never the HTML. --ai also asks Claude (needs ANTHROPIC_API_KEY, about $0.0005 a page).
@@ -26,8 +27,10 @@ from app.scorer import analyze
 EVAL = Path(__file__).resolve().parent.parent / "data" / "eval"
 SAMPLE = EVAL / "page_sample.csv"
 OUT = EVAL / "pages.csv"
+LABELS = EVAL.parent / "raw" / "chongluadao_daily.csv"
 FIELDS = ["url", "label", "error", "rules", "points", "ai_answered",
-          "has_password", "has_otp_or_card", "text_len", "html_len", "brands_in_title", "title"]
+          "has_password", "has_otp_or_card", "text_len", "html_len", "brands_in_title", "title",
+          "expected_brand", "expected_asks"]
 FRESH_DAYS = 2  # most phishing pages are taken down within a few days
 LITTLE_TEXT = 200  # characters: a page this empty is usually built by JavaScript
 
@@ -84,10 +87,16 @@ def safe_title(title: str) -> str:
     return "'" + title if title[:1] in ("=", "+", "-", "@") else title
 
 
+def pick_labelled(rows: list, today: str) -> list:
+    """Pages copied by hand from ChongLuaDao today, with what their screenshot asks for."""
+    return [{"url": r["url"], "label": "phishing_vn", "expected_brand": r["brand"], "expected_asks": r["asks"]}
+            for r in rows if r["seen"] == today]
+
+
 def summarize(rows: list) -> list:
     """Printable lines per label: how many pages downloaded, and how many each layer flagged."""
     lines = []
-    for label in ("phishing", "benign_warned", "benign_random"):
+    for label in ("phishing", "phishing_vn", "benign_warned", "benign_random"):
         group = [r for r in rows if r["label"] == label]
         loaded = [r for r in group if not r["error"]]
         if not group:
@@ -105,6 +114,14 @@ def summarize(rows: list) -> list:
             empty = sum(1 for r in missed if int(r.get("text_len") or 0) < LITTLE_TEXT)
             lines.append(f"  not flagged {len(missed)}: with a password field {password}, "
                          f"with under {LITTLE_TEXT} characters of text {empty}")
+        labelled = [r for r in loaded if r.get("expected_asks")]
+        if labelled:
+            password = [r for r in labelled if "password" in r["expected_asks"]]
+            otp_card = [r for r in labelled if "otp" in r["expected_asks"] or "card" in r["expected_asks"]]
+            lines.append(f"  screenshot vs downloaded HTML: password field "
+                         f"{sum(1 for r in password if str(r.get('has_password')) == 'True')} of {len(password)}, "
+                         f"OTP or card field "
+                         f"{sum(1 for r in otp_card if str(r.get('has_otp_or_card')) == 'True')} of {len(otp_card)}")
         errors = Counter(r["error"].split(":")[0] for r in group if r["error"])
         lines += [f"  not downloaded, {err}: {n}" for err, n in errors.most_common()]
     return lines
@@ -138,9 +155,15 @@ def main() -> int:
             llm_fn = make_claude_extract()
         jobs = read_csv(SAMPLE)
         with ThreadPoolExecutor(max_workers=8) as pool:
-            rows = list(pool.map(lambda j: measure_one(j["url"], j["label"], llm_fn), jobs))
+            rows = list(pool.map(lambda j: {**measure_one(j["url"], j["label"], llm_fn),
+                                            "expected_brand": j.get("expected_brand", ""),
+                                            "expected_asks": j.get("expected_asks", "")}, jobs))
         write_csv(OUT, FIELDS, rows)
         print("\n".join(summarize(rows)))
+    elif command == "labelled":
+        rows = pick_labelled(read_csv(LABELS), date.today().isoformat())
+        write_csv(SAMPLE, ["url", "label", "expected_brand", "expected_asks"], rows)
+        print(f"{len(rows)} pages seen today written to {SAMPLE}")
     elif command == "report":
         print("\n".join(summarize(read_csv(OUT))))
     else:
