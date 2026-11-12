@@ -1,5 +1,6 @@
 """Extract phishing signals from a page's HTML (standard library only)."""
 import re
+import unicodedata
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
@@ -46,9 +47,15 @@ class _Collector(HTMLParser):
             self.text.append(data.strip())
 
 
+def strip_accents(text: str) -> str:
+    """Vietnamese pages write brands with diacritics ("Bảo hiểm xã hội"); brands.json stores them without."""
+    decomposed = unicodedata.normalize("NFD", text.replace("đ", "d").replace("Đ", "D"))
+    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+
+
 def brands_in(text: str) -> list:
     """Brands named in free text. Short names and aliases must be whole words (zalo, not zalora)."""
-    words = re.findall(r"[a-z0-9]+", text.lower().translate(CONFUSABLES))
+    words = re.findall(r"[a-z0-9]+", strip_accents(text).lower().translate(CONFUSABLES))
     joined = "".join(words)
     found = set()
     for brand, info in BRANDS.items():

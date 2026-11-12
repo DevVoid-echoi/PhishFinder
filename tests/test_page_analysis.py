@@ -4,7 +4,7 @@ import json
 import pytest
 
 from app.page_analysis import analyze_page, build_prompt, parse_ai
-from app.page_features import brands_in, extract
+from app.page_features import brands_in, extract, strip_accents
 
 PHISH_URL = "https://vcb-secure.top/login"
 PHISH_HTML = """<html><head><title>Vietcombank - Xác thực tài khoản</title></head><body>
@@ -54,6 +54,9 @@ def test_text_is_capped():
     ("Vietcоmbank", ["vietcombank"]),  # Cyrillic о
     ("Zalora Vietnam", []),            # zalo only as a whole word
     ("Techcombank và BIDV", ["bidv", "techcombank"]),
+    ("Bảo hiểm xã hội Việt Nam", ["baohiemxahoi"]),  # diacritics
+    ("ĐĂNG NHẬP BẢO HIỂM XÃ HỘI", ["baohiemxahoi"]),
+    ("Mô Mô và Tí Kì", []),  # removing accents must not join words into a short brand
 ])
 def test_brands_in(title, expected):
     assert brands_in(title) == expected
@@ -113,3 +116,12 @@ def test_official_page_skips_the_rules_and_ai():
     calls = []
     r = analyze_page(PHISH_HTML, "https://vietcombank.com.vn/login", lambda *a: calls.append(1))
     assert (r["reasons"], calls) == ([], [])
+
+
+def test_strip_accents():
+    assert strip_accents("Đăng nhập Bảo hiểm xã hội") == "Dang nhap Bao hiem xa hoi"
+
+
+def test_vietnamese_title_with_diacritics_fires_brand_login():
+    html = '<title>Bảo hiểm xã hội Việt Nam</title><form><input type="password"></form>'
+    assert "page_brand_login" in rules_of(analyze_page(html, "https://tokhaibaohiem.example/"))
