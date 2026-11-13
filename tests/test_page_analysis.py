@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from app.page_analysis import analyze_page, build_prompt, parse_ai
-from app.page_features import brands_in, extract, strip_accents
+from app.page_analysis import analyze_features, analyze_page, build_prompt, parse_ai
+from app.page_features import brands_in, extract, features_from_dom, strip_accents
 
 PHISH_URL = "https://vcb-secure.top/login"
 PHISH_HTML = """<html><head><title>Vietcombank - Xác thực tài khoản</title></head><body>
@@ -147,3 +147,40 @@ def test_brand_and_id_number_fire_brand_login():
 def test_id_number_alone_adds_nothing():
     html = '<title>Mở tài khoản</title><form><input placeholder="Số CCCD"></form>'
     assert analyze_page(html, "https://shop.example/")["reasons"] == []
+
+
+# What the extension would send for PHISH_HTML once the browser has rendered it
+PHISH_DOM = {"title": "Vietcombank - Xác thực tài khoản",
+             "text": "Tài khoản của quý khách sẽ bị khóa trong 24 giờ. Vui lòng xác thực ngay.",
+             "inputs": [{"type": "text", "hints": "text username"}, {"type": "password", "hints": "password pass"},
+                        {"type": "", "hints": " otp mã otp"}],
+             "form_hosts": ["collector.xyz"]}
+
+
+def test_dom_and_html_give_the_same_features():
+    from_html = extract(PHISH_HTML, PHISH_URL)
+    from_dom = features_from_dom(PHISH_DOM, "vcb-secure.top")
+    assert {k: v for k, v in from_dom.items() if k != "text"} == {k: v for k, v in from_html.items() if k != "text"}
+
+
+def test_dom_features_fire_the_same_rules():
+    f = features_from_dom(PHISH_DOM, "vcb-secure.top")
+    assert rules_of(analyze_features(f, "vcb-secure.top")) == {
+        "page_brand_login", "page_asks_otp_card", "page_form_external"}
+
+
+def test_dom_form_to_the_same_site_is_not_external():
+    f = features_from_dom({**PHISH_DOM, "form_hosts": ["login.vcb-secure.top"]}, "vcb-secure.top")
+    assert f["external_form_domains"] == []
+
+
+def test_multiple_dom_forms_to_the_same_external_site_are_listed_once():
+    page = {**PHISH_DOM, "form_hosts": ["collector.xyz", "collector.xyz", "collector.xyz"]}
+    f = features_from_dom(page, "vcb-secure.top")
+    assert f["external_form_domains"] == ["collector.xyz"]
+
+
+def test_dom_inputs_are_capped():
+    # The password field is the 51st, one past the limit
+    page = {**PHISH_DOM, "inputs": [{"type": "text", "hints": "x"}] * 50 + [{"type": "password", "hints": ""}]}
+    assert not features_from_dom(page, "vcb-secure.top")["has_password"]
