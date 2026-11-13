@@ -71,11 +71,12 @@ def rule_reasons(f: dict) -> list:
     if f["page_is_official"]:
         return []
     out = []
-    asks = f["has_password"] or f["has_otp"] or f["has_card"]
+    # An ID number counts with a brand, never alone: real banks and public services ask for it too
+    asks = f["has_password"] or f["has_otp"] or f["has_card"] or f["has_id_number"]
     if asks and f["brands_in_title"]:
         out.append({"rule": "page_brand_login", "points": 50,
                     "reason": f"Page title names {', '.join(f['brands_in_title'])} and asks for a password, "
-                              "OTP or card, but this is not an official site"})
+                              "OTP, card or ID number, but this is not an official site"})
     if f["has_otp"] or f["has_card"]:
         out.append({"rule": "page_asks_otp_card", "points": 20,
                     "reason": "Page asks for an OTP code or card details"})
