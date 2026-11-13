@@ -11,6 +11,10 @@ OTP_HINTS = ("otp", "one-time-code", "ma xac thuc", "mã xác thực", "verifica
 CARD_HINTS = ("cc-number", "cc-csc", "cc-exp", "cvv", "cvc", "card number", "so the", "số thẻ",
               "ngay het han", "ngày hết hạn")
 SKIP_TAGS = {"script", "style", "noscript", "template"}
+# Vietnamese ID numbers: CCCD (chip ID card), the older CMND, the personal ID number, passports.
+# Not "passport" or "identity" alone: account systems use those words for a plain user name.
+ID_HINTS = ("cccd", "cmnd", "can cuoc", "căn cước", "chung minh", "chứng minh",
+            "so dinh danh", "số định danh", "ho chieu", "hộ chiếu")
 MAX_TEXT = 3000  # enough for the AI to understand the page, and caps its cost
 
 
@@ -83,6 +87,7 @@ def extract(html: str, page_url: str) -> dict:
         "has_password": any(kind == "password" for kind, _ in c.inputs),
         "has_otp": any(h in hints for _, hints in c.inputs for h in OTP_HINTS),
         "has_card": any(h in hints for _, hints in c.inputs for h in CARD_HINTS),
+        "has_id_number": any(h in hints for _, hints in c.inputs for h in ID_HINTS),
         "external_form_domains": sorted(form_domains),
         # Title only: real shops write "pay with MoMo or Vietcombank" in the body
         "brands_in_title": brands_in(c.title),

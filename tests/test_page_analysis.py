@@ -125,3 +125,25 @@ def test_strip_accents():
 def test_vietnamese_title_with_diacritics_fires_brand_login():
     html = '<title>Bảo hiểm xã hội Việt Nam</title><form><input type="password"></form>'
     assert "page_brand_login" in rules_of(analyze_page(html, "https://tokhaibaohiem.example/"))
+
+
+@pytest.mark.parametrize("field, expected", [
+    ('<input name="cccd">', True),
+    ('<input placeholder="Nhập số căn cước công dân">', True),
+    ('<input placeholder="Số CMND/CCCD">', True),
+    ('<input placeholder="Số định danh cá nhân">', True),
+    ('<input name="passport">', False),  # account systems call the user name "passport"
+    ('<input name="identity">', False),
+])
+def test_id_number_fields(field, expected):
+    assert extract(f"<form>{field}</form>", "https://x.top/")["has_id_number"] is expected
+
+
+def test_brand_and_id_number_fire_brand_login():
+    html = '<title>Bảo Hiểm Xã Hội Việt Nam</title><form><input placeholder="Số CCCD"></form>'
+    assert "page_brand_login" in rules_of(analyze_page(html, "https://tokhaibaohiem.example/"))
+
+
+def test_id_number_alone_adds_nothing():
+    html = '<title>Mở tài khoản</title><form><input placeholder="Số CCCD"></form>'
+    assert analyze_page(html, "https://shop.example/")["reasons"] == []
