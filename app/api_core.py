@@ -8,7 +8,7 @@ import logging
 import re
 import threading
 import time
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 from app.heuristics import SHORTENERS
 from app.parser import parse_url
@@ -44,14 +44,6 @@ def normalize_short_url (raw: str) -> str:
         raise ValueError("Only links of known URL shorteners are expanded")
     return url
 
-def normalize_page_url(raw: str) -> str:
-    """Deep analysis takes a full URL, because the user turned it on. Drop the #fragment, which a
-    browser never sends to a web server either, and refuse user names or passwords in the URL."""
-    url = raw.strip()
-    p = urlsplit(url)
-    if p.scheme not in ("http", "https") or not p.hostname or p.username or p.password:
-        raise ValueError("Invalid page URL")
-    return urlunsplit(p._replace(fragment=""))
 
 class BudgetExhausted(Exception):
     """Today's AI calls are used up"""
