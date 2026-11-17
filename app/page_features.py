@@ -16,6 +16,7 @@ SKIP_TAGS = {"script", "style", "noscript", "template"}
 ID_HINTS = ("cccd", "cmnd", "can cuoc", "căn cước", "chung minh", "chứng minh",
             "so dinh danh", "số định danh", "ho chieu", "hộ chiếu")
 MAX_TEXT = 3000  # enough for the AI to understand the page, and caps its cost
+MAX_INPUTS = 50  # a real form has a few fields; more only costs time
 
 
 class _Collector(HTMLParser):
@@ -69,27 +70,35 @@ def brands_in(text: str) -> list:
     return sorted(found)
 
 
+def features(title: str, text: str, inputs: list, form_domains: set, page_domain: str) -> dict:
+    """The signals the page rules and the AI use, wherever the page was read.
+    inputs: (type, hints) pairs in lower case; form_domains: registered domains forms send data to."""
+    return {
+        "title": title.strip()[:200],
+        "text": text[:MAX_TEXT],
+        "has_password": any(kind == "password" for kind, _ in inputs),
+        "has_otp": any(h in hints for _, hints in inputs for h in OTP_HINTS),
+        "has_card": any(h in hints for _, hints in inputs for h in CARD_HINTS),
+        "has_id_number": any(h in hints for _, hints in inputs for h in ID_HINTS),
+        "external_form_domains": sorted(d for d in form_domains if d and d != page_domain),
+        # Title only: real shops write "pay with MoMo or Vietcombank" in the body
+        "brands_in_title": brands_in(title),
+        "page_is_official": is_official(page_domain),
+    }
+
+
 def extract(html: str, page_url: str) -> dict:
+    """Features of downloaded HTML. Text and forms built by JavaScript are not in it."""
     c = _Collector()
     c.feed(html)
     c.close()
-    page_domain = parse_url(page_url).registered_domain
+    form_domains = {parse_url(urljoin(page_url, action)).registered_domain for action in c.forms}
+    return features(c.title, " ".join(c.text), c.inputs, form_domains, parse_url(page_url).registered_domain)
 
-    form_domains = set()
-    for action in c.forms:
-        domain = parse_url(urljoin(page_url, action)).registered_domain
-        if domain and domain != page_domain:
-            form_domains.add(domain)
 
-    return {
-        "title": c.title.strip()[:200],
-        "text": " ".join(c.text)[:MAX_TEXT],
-        "has_password": any(kind == "password" for kind, _ in c.inputs),
-        "has_otp": any(h in hints for _, hints in c.inputs for h in OTP_HINTS),
-        "has_card": any(h in hints for _, hints in c.inputs for h in CARD_HINTS),
-        "has_id_number": any(h in hints for _, hints in c.inputs for h in ID_HINTS),
-        "external_form_domains": sorted(form_domains),
-        # Title only: real shops write "pay with MoMo or Vietcombank" in the body
-        "brands_in_title": brands_in(c.title),
-        "page_is_official": is_official(page_domain),
-    }
+def features_from_dom(page: dict, host: str) -> dict:
+    """Features of a page the extension read after the browser ran its JavaScript.
+    page: {"title", "text", "inputs": [{"type", "hints"}], "form_hosts": [hostnames forms post to]}."""
+    inputs = [(i["type"].lower(), i["hints"].lower()) for i in page["inputs"][:MAX_INPUTS]]
+    form_domains = {parse_url(f"https://{h}/").registered_domain for h in page["form_hosts"]}
+    return features(page["title"], page["text"], inputs, form_domains, parse_url(f"https://{host}/").registered_domain)

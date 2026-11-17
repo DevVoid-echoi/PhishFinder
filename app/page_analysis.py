@@ -104,16 +104,21 @@ def ai_reasons(ai: dict, f: dict) -> list:
     return out
 
 
-def analyze_page(html: str, page_url: str, llm_fn=None) -> dict:
-    """llm_fn(system, user, schema) returns a JSON string; None runs the fixed rules only."""
-    f = extract(html, page_url)
+def analyze_features(f: dict, page_address: str, llm_fn=None) -> dict:
+    """llm_fn(system, user, schema) returns a JSON string; None runs the fixed rules only.
+    page_address is shown to the AI: the hostname when the extension sent the page."""
     reasons = rule_reasons(f)
     ai = None
     if llm_fn is not None and not f["page_is_official"]:
         try:
-            ai = parse_ai(llm_fn(SYSTEM_PROMPT, build_prompt(f, page_url), AI_SCHEMA))
+            ai = parse_ai(llm_fn(SYSTEM_PROMPT, build_prompt(f, page_address), AI_SCHEMA))
         except Exception as e:
             log.warning("AI extraction failed: %s", type(e).__name__)
         reasons += ai_reasons(ai, f)
     return {"reasons": reasons, "ai_summary": ai["summary"] if ai else None,
             "features": {k: v for k, v in f.items() if k != "text"}}
+
+
+def analyze_page(html: str, page_url: str, llm_fn=None) -> dict:
+    """Downloaded HTML (measurement in the VM). The extension sends what it read instead."""
+    return analyze_features(extract(html, page_url), page_url, llm_fn)
