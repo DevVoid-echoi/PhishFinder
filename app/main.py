@@ -1,8 +1,8 @@
 """Production API. Run locally: python -m uvicorn app.main:app --reload
 
 The extension decides locally; the server only does what a browser cannot:
-domain age (RDAP) and TLS checks, for a hostname, never a full URL. The one exception is
-/v1/analyze-page, which the user must turn on in the extension.
+domain age (RDAP) and TLS checks, for a hostname, never a full URL. /v1/analyze-page, which the
+user must turn on, also receives what the extension read on the page, still without the URL.
 """
 import hashlib
 import json
@@ -18,11 +18,11 @@ from app.api_core import (DailyBudget,
                           TTLCache,
                           domain_reputation,
                           normalize_host,
-                          normalize_page_url,
                           normalize_short_url)
 from app.llm import make_claude_extract
 from app.online import check_domain_age
-from app.page_analysis import analyze_page
+from app.page_analysis import analyze_features
+from app.page_features import features_from_dom
 from app.page_fetch import follow
 from app.reputation import check_tls
 
@@ -103,28 +103,35 @@ def report(r: Report):
         log.warning("ALERT %s", json.dumps(alert, ensure_ascii=False))
     return {"received": True}
 
-class PageRequest(BaseModel):
-    url: str = Field(..., max_length=2048)
+class PageInput(BaseModel):
+    type: str = Field("", max_length=40)
+    hints: str = Field("", max_length=300)
+
+class PageContent(BaseModel):
+    """What the extension read on the page after the browser ran its JavaScript. No URL: only the hostname."""
+    host: str = Field(..., max_length=253)
+    title: str = Field("", max_length=300)
+    text: str = Field("", max_length=3000)
+    inputs: list[PageInput] = Field(default_factory=list, max_length=50)
+    form_hosts: list[str] = Field(default_factory=list, max_length=20)
 
 @app.post("/v1/analyze-page")
-def analyze_page_api(req: PageRequest):
-    """Deep analysis of one page, only after the user turns it on: the full URL leaves the browser.
-    The URL is never logged, and the cache keeps its hash, not the URL itself."""
+def analyze_page_api(page: PageContent):
+    """Deep analysis of the page the user has open, only after they turn it on. The server never downloads
+    the page: a page built by JavaScript is empty to a download, and phishing kits show servers a decoy.
+    Nothing from the page is logged, and the cache keeps a hash of the content, not the content."""
     try:
-        url = normalize_page_url(req.url)
+        host = normalize_host(page.host)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    key = hashlib.sha256(url.encode()).hexdigest()
+    content = page.model_dump()
+    key = hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     cached = page_cache.get(key)
     if cached is not None:
         return {**cached, "cached": True}
-    page = follow(url, method="GET")
-    if page["error"]:
-        log.info("analyze-page fetch failed")
-        return {"reasons": [], "ai_summary": None, "error": page["error"], "cached": False}
     llm = ai_budget.limit_calls(claude_extract) if claude_extract else None
-    analysis = analyze_page(page["html"], page["final"], llm)
-    result = {"reasons": analysis["reasons"], "ai_summary": analysis["ai_summary"], "error": None}
+    analysis = analyze_features(features_from_dom(content, host), host, llm)
+    result = {"reasons": analysis["reasons"], "ai_summary": analysis["ai_summary"]}
     page_cache.set(key, result)
     log.info("analyze-page findings=%d ai=%s", len(result["reasons"]), result["ai_summary"] is not None)
     return {**result, "cached": False}

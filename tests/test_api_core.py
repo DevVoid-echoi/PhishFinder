@@ -7,8 +7,7 @@ from app.api_core import (BudgetExhausted,
                           DailyBudget,
                           TTLCache,
                           domain_reputation,
-                          normalize_host,
-                          normalize_page_url)
+                          normalize_host)
 
 
 @pytest.mark.parametrize("raw, host", [
@@ -114,12 +113,3 @@ def test_budget_stops_calls_when_spent():
     with pytest.raises(BudgetExhausted):
         limited("system", "page")
     assert calls == [("system", "page")]
-
-def test_normalize_page_url_drops_the_fragment():
-    assert normalize_page_url(" https://a.com/login?x=1#token ") == "https://a.com/login?x=1"
-
-@pytest.mark.parametrize("bad", ["ftp://a.com/", "javascript:alert(1)", "https://user:pw@a.com/",
-                                 "https:///path", "a.com/login"])
-def test_normalize_page_url_rejects(bad):
-    with pytest.raises(ValueError):
-        normalize_page_url(bad)
