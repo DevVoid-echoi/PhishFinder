@@ -119,3 +119,14 @@ def test_official_sites_of_new_brands_are_clean(link):
                                   "http://csgt-phatnguoi.com", "http://shinhan-vay.top"])
 def test_new_brands_are_protected(link):
     assert "check_lookalike" in rules_of(link)
+
+
+@pytest.mark.parametrize("link", ["https://dienmayxanh.com", "https://htx.com", "https://vietnampost.vn"])
+def test_official_sites_of_shop_finance_and_crypto_brands_are_clean(link):
+    assert "check_lookalike" not in rules_of(link)
+
+
+@pytest.mark.parametrize("link", ["http://baohanhdienmayxanh.com", "http://binance-register.top",
+                                  "http://mcredit-giaingan.com", "http://vietnampost-tracking.top"])
+def test_shop_finance_and_crypto_brands_are_protected(link):
+    assert "check_lookalike" in rules_of(link)
