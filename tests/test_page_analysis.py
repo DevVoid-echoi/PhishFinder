@@ -57,6 +57,8 @@ def test_text_is_capped():
     ("Bảo hiểm xã hội Việt Nam", ["baohiemxahoi"]),  # diacritics
     ("ĐĂNG NHẬP BẢO HIỂM XÃ HỘI", ["baohiemxahoi"]),
     ("Mô Mô và Tí Kì", []),  # removing accents must not join words into a short brand
+    ("Thuế Điện Tử", ["gdt"]),
+    ("Nạp Thẻ Free Fire Chính Thức", ["garena"]),
 ])
 def test_brands_in(title, expected):
     assert brands_in(title) == expected
