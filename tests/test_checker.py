@@ -115,6 +115,7 @@ def test_official_sites_of_new_brands_are_clean(link):
 
 
 @pytest.mark.parametrize("link", ["http://garena-lienquan.com", "http://freefire-nhanqua.top",
-                                  "http://saigoncentreshop.com", "http://evn-credit.life", "http://csgt-phatnguoi.com", "http://shinhan-vay.top"])
+                                  "http://saigoncentreshop.com", "http://evn-credit.life",
+                                  "http://csgt-phatnguoi.com", "http://shinhan-vay.top"])
 def test_new_brands_are_protected(link):
     assert "check_lookalike" in rules_of(link)
