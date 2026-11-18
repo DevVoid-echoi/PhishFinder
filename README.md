@@ -82,7 +82,7 @@ URL ─► parser ─► rules (in the browser) ─► score + level + reasons
 | `check_long_url` | 10 | URL longer than 100 characters |
 | `check_shortener` | 10 | Known URL shortener |
 
-Brands, official domains and abbreviations live in [`data/brands.json`](data/brands.json) (45 brands: Vietnamese banks, e-wallets, payment networks, delivery, telecom and government services, plus regional and global platforms; official domains checked against the NCSC trusted-site registry, or against the live site for the six banks added in November 2026). Short brands (5 characters or fewer) only match as a separate token, so `zalo-nhanqua.com` and `acb-xacthuc.com` are caught while `zalora.com` and `acbs.com.vn` are not.
+Brands, official domains and abbreviations live in [`data/brands.json`](data/brands.json) (58 brands: Vietnamese banks, e-wallets, payment networks, delivery, telecom, electricity, police and government services, games and shops, plus regional and global platforms; official domains checked against the NCSC trusted-site registry, or against the live site for the brands added in November 2026). Short brands (5 characters or fewer) only match as a separate token, so `zalo-nhanqua.com` and `acb-xacthuc.com` are caught while `zalora.com` and `acbs.com.vn` are not.
 
 **Lists.**
 - *Blocklist:* 16,843 Vietnamese-targeted domains (vn-badsite-filter, CC0/MIT), 142 domains from Vietnamese government and press advisories (each checked against its source), and OpenPhish URLs. A hit always scores 100.
@@ -172,7 +172,7 @@ PhishFinder/
 │   ├── measure_pages.py    page analysis on live pages, run in a virtual machine
 │   └── evaluate_phishvn.py measurement on Vietnamese phishing (PhishVN)
 ├── data/
-│   ├── brands.json         45 protected brands, official domains, abbreviations
+│   ├── brands.json         58 protected brands, official domains, abbreviations
 │   ├── blacklist_manual.txt domains from Vietnamese government and press advisories, with sources
 │   └── eval/
 │       ├── benign_vn.txt   153 hand-checked sites, mostly Vietnamese

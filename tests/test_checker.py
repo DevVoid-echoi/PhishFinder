@@ -106,3 +106,16 @@ def test_real_vn_suffix_is_not_caught(link):
 
 def test_vietnamese_banking_keywords():
     assert "check_keywords" in rules_of("http://vaytinchap-nganhang24h.net")
+
+
+@pytest.mark.parametrize("link", ["https://garena.co.id", "https://lienquan.garena.vn", "https://shein.com.vn",
+                                  "https://shinhanfinance.com.vn", "https://csgt.vn"])
+def test_official_sites_of_new_brands_are_clean(link):
+    assert "check_lookalike" not in rules_of(link)
+
+
+@pytest.mark.parametrize("link", ["http://garena-lienquan.com", "http://freefire-nhanqua.top",
+                                  "http://saigoncentreshop.com", "http://evn-credit.life",
+                                  "http://csgt-phatnguoi.com", "http://shinhan-vay.top"])
+def test_new_brands_are_protected(link):
+    assert "check_lookalike" in rules_of(link)
