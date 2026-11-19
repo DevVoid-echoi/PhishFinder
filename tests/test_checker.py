@@ -130,3 +130,13 @@ def test_official_sites_of_shop_finance_and_crypto_brands_are_clean(link):
                                   "http://mcredit-giaingan.com", "http://vietnampost-tracking.top"])
 def test_shop_finance_and_crypto_brands_are_protected(link):
     assert "check_lookalike" in rules_of(link)
+
+
+@pytest.mark.parametrize("link", ["https://locket.camera", "https://locketcamera.com"])
+def test_locket_official_sites_are_clean(link):
+    assert "check_lookalike" not in rules_of(link)
+
+
+@pytest.mark.parametrize("link", ["https://locketgold.space/pricing", "https://locket.vn/android/49ka"])
+def test_fake_locket_sites_are_caught(link):
+    assert "check_lookalike" in rules_of(link)

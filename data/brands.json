@@ -56,6 +56,7 @@
   "binance": {"official": ["binance.com", "binance.us", "binance.info"], "aliases": []},
   "coinbase": {"official": ["coinbase.com"], "aliases": []},
   "huobi": {"official": ["huobi.com", "htx.com"], "aliases": []},
+  "locket": {"official": ["locket.camera", "locketcamera.com"], "aliases": []},
   "vnpay": {"official": ["vnpay.vn"], "aliases": []},
   "napas": {"official": ["napas.com.vn"], "aliases": []},
   "vinaphone": {"official": ["vinaphone.com.vn", "vnpt.vn"], "aliases": []},
