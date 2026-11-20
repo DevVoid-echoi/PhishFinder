@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from app.alert import to_alert
 from app.api_core import (DailyBudget,
                           TTLCache,
+                          domain_age,
                           domain_reputation,
                           normalize_host,
                           normalize_short_url)
@@ -24,6 +25,7 @@ from app.online import check_domain_age
 from app.page_analysis import analyze_features
 from app.page_features import features_from_dom
 from app.page_fetch import follow
+from app.parser import parse_url
 from app.reputation import check_tls
 
 DEV = os.environ.get("PHISHFINDER_DEV") == "1"
@@ -130,7 +132,9 @@ def analyze_page_api(page: PageContent):
     if cached is not None:
         return {**cached, "cached": True}
     llm = ai_budget.limit_calls(claude_extract) if claude_extract else None
-    analysis = analyze_features(features_from_dom(content, host), host, llm)
+    # The age comes from the server's own lookup, never from the caller
+    domain_is_new = domain_age(parse_url(f"https://{host}/").registered_domain, check_domain_age, age_cache) is not None
+    analysis = analyze_features(features_from_dom(content, host), host, llm, domain_is_new)
     result = {"reasons": analysis["reasons"], "ai_summary": analysis["ai_summary"]}
     page_cache.set(key, result)
     log.info("analyze-page findings=%d ai=%s", len(result["reasons"]), result["ai_summary"] is not None)

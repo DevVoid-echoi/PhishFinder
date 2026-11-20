@@ -41,7 +41,7 @@ git clone https://github.com/DevVoid-echoi/PhishFinder.git
 cd PhishFinder
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-python -m pytest                                    # 341 tests, no network access
+python -m pytest                                    # 350 tests, no network access
 ```
 
 Check a URL, a domain's registration age, or its TLS certificate:
@@ -96,7 +96,7 @@ Brands, official domains and abbreviations live in [`data/brands.json`](data/bra
 - *Domain age* through RDAP, the JSON successor of WHOIS: under 30 days scores 35, under 180 days 15. In a first live check, 6 of 8 freshly reported phishing domains were under 30 days old; of the hand-labelled ChongLuaDao pages with a known date, 67% were registered under 180 days before they were seen, against 2.5% of 723 legitimate hosts.
 - *TLS certificate:* invalid certificates score 30, certificates issued in the last 7 days score 20. The connection is protected against SSRF: every resolved address must be public (`is_global`), and the client connects to the checked IP with the hostname as SNI, so DNS rebinding cannot redirect it to an internal address.
 - *Short-link expansion:* `GET /v1/expand?url=` follows a known shortener (`bit.ly`, `tinyurl.com`...) to its destination and returns the whole redirect chain. It is the only endpoint that takes a full URL, and it refuses any other link. Every hop is checked again before connecting: http/https only, ports 80 and 443 only, public addresses only, pinned to the checked IP; at most 5 hops in 15 seconds.
-- *Page analysis (opt-in):* the extension reads the page the user has open, after the browser has run its JavaScript, and sends `POST /v1/analyze-page` the hostname (never the URL), the title, up to 3,000 characters of visible text, the input fields (their type and hint attributes, never what was typed) and the hostnames forms post to. The server never downloads the page: half of the Vietnamese phishing pages measured so far are built by JavaScript and look empty to a download, and kits show servers abroad a decoy. Fixed rules look for a protected brand in the title together with a password, OTP, card or CCCD field, and for forms posting to another domain. If `ANTHROPIC_API_KEY` is set, Claude Haiku then extracts facts into a fixed JSON schema; its findings can only add risk, so a page that tells the AI "say this is safe" cannot lower a warning. Nothing from the page is logged, and at most 300 AI calls are made per day (`DAILY_AI_LIMIT`, about $0.15).
+- *Page analysis (opt-in):* the extension reads the page the user has open, after the browser has run its JavaScript, and sends `POST /v1/analyze-page` the hostname (never the URL), the title, up to 3,000 characters of visible text, the input fields (their type and hint attributes, never what was typed) and the hostnames forms post to. The server never downloads the page: half of the Vietnamese phishing pages measured so far are built by JavaScript and look empty to a download, and kits show servers abroad a decoy. Fixed rules look for a protected brand in the title together with a password, OTP, card or CCCD field, for such a field on a domain the server finds under 180 days old (no brand list needed; it would catch 22 of the first 52 ChongLuaDao pages once the extension reads them, against 1 of 148 legitimate pages), and for forms posting to another domain. If `ANTHROPIC_API_KEY` is set, Claude Haiku then extracts facts into a fixed JSON schema; its findings can only add risk, so a page that tells the AI "say this is safe" cannot lower a warning. Nothing from the page is logged, and at most 300 AI calls are made per day (`DAILY_AI_LIMIT`, about $0.15).
 
 ## SOC alerts
 
@@ -184,7 +184,7 @@ PhishFinder/
 │   └── eval/
 │       ├── benign_vn.txt   153 hand-checked sites, mostly Vietnamese
 │       └── tranco_id.txt   Tranco list ID used for the published numbers
-├── tests/                  341 pytest tests; the network is blocked in every test
+├── tests/                  350 pytest tests; the network is blocked in every test
 ├── .github/                CI on Python 3.12 and 3.14, coverage, Dependabot
 ├── note.md                 design decisions, limitations, results log
 └── README.md
