@@ -106,19 +106,21 @@ def domain_reputation(host: str, age_fn, tls_fn, cache: TTLCache, age_cache: TTL
     if cached is not None:
         return {**cached, "cached": True}
     registered = parse_url(host).registered_domain
-
-    age = age_cache.get(registered)
-    if age is None:
-        age = {"hit": _safe("domain_age", age_fn, registered)}
-        age_cache.set(registered, age)
-
     reasons = []
-    for rule, hit in (("domain_age", age["hit"]), ("tls", _safe("tls", tls_fn, host))):
+    for rule, hit in (("domain_age", domain_age(registered, age_fn, age_cache)), ("tls", _safe("tls", tls_fn, host))):
         if hit:
             reasons.append({"rule": rule, "points": hit[0], "reason": hit[1]})
     result = {"host": host, "domain": registered, "reasons": reasons}
     cache.set(host, result)
     return {**result, "cached": False}
+
+def domain_age(registered: str, age_fn, age_cache: TTLCache):
+    """age_fn's finding for a registered domain, with one RDAP lookup per domain shared by every endpoint."""
+    age = age_cache.get(registered)
+    if age is None:
+        age = {"hit": _safe("domain_age", age_fn, registered)}
+        age_cache.set(registered, age)
+    return age["hit"]
 
 def _safe(rule: str, fn, arg):
     """An external service failing must not break the whole answer, but it must be visible"""

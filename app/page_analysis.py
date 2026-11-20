@@ -66,8 +66,9 @@ def parse_ai(raw: str):
     return {**data, "summary": data["summary"][:300]}
 
 
-def rule_reasons(f: dict) -> list:
-    """Fixed rules on page content; they work without the AI."""
+def rule_reasons(f: dict, domain_is_new: bool = False) -> list:
+    """Fixed rules on page content; they work without the AI.
+    domain_is_new: the server's RDAP lookup found the domain under 180 days old."""
     if f["page_is_official"]:
         return []
     out = []
@@ -80,6 +81,12 @@ def rule_reasons(f: dict) -> list:
     if f["has_otp"] or f["has_card"]:
         out.append({"rule": "page_asks_otp_card", "points": 20,
                     "reason": "Page asks for an OTP code or card details"})
+    # No brand list needed: most of the Vietnamese phishing domains seen were registered recently.
+    # 30 points: yellow on its own, red only with another sign
+    if asks and domain_is_new:
+        out.append({"rule": "page_new_domain_sensitive", "points": 30,
+                    "reason": "Page asks for a password, OTP, card or ID number on a domain registered "
+                              "less than 180 days ago"})
     if asks and f["external_form_domains"]:
         out.append({"rule": "page_form_external", "points": 20,
                     "reason": f"Entered data is sent to another domain: {', '.join(f['external_form_domains'])}"})
@@ -104,10 +111,10 @@ def ai_reasons(ai: dict, f: dict) -> list:
     return out
 
 
-def analyze_features(f: dict, page_address: str, llm_fn=None) -> dict:
+def analyze_features(f: dict, page_address: str, llm_fn=None, domain_is_new: bool = False) -> dict:
     """llm_fn(system, user, schema) returns a JSON string; None runs the fixed rules only.
     page_address is shown to the AI: the hostname when the extension sent the page."""
-    reasons = rule_reasons(f)
+    reasons = rule_reasons(f, domain_is_new)
     ai = None
     if llm_fn is not None and not f["page_is_official"]:
         try:

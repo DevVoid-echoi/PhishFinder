@@ -187,3 +187,24 @@ def test_dom_inputs_are_capped():
     # The password field is the 51st, one past the limit
     page = {**PHISH_DOM, "inputs": [{"type": "text", "hints": "x"}] * 50 + [{"type": "password", "hints": ""}]}
     assert not features_from_dom(page, "vcb-secure.top")["has_password"]
+
+
+LOGIN_DOM = {"title": "Đăng nhập", "text": "", "inputs": [{"type": "password", "hints": "password"}],
+             "form_hosts": []}
+
+
+def test_sensitive_field_on_a_new_domain():
+    f = features_from_dom(LOGIN_DOM, "tiepthionline24h.com")
+    assert analyze_features(f, "tiepthionline24h.com", domain_is_new=True)["reasons"] == [
+        {"rule": "page_new_domain_sensitive", "points": 30,
+         "reason": "Page asks for a password, OTP, card or ID number on a domain registered less than 180 days ago"}]
+
+
+def test_sensitive_field_on_an_old_domain_adds_nothing():
+    f = features_from_dom(LOGIN_DOM, "tiepthionline24h.com")
+    assert analyze_features(f, "tiepthionline24h.com")["reasons"] == []
+
+
+def test_new_domain_without_a_sensitive_field_adds_nothing():
+    f = features_from_dom({**LOGIN_DOM, "inputs": [{"type": "text", "hints": "search"}]}, "shop.example")
+    assert analyze_features(f, "shop.example", domain_is_new=True)["reasons"] == []

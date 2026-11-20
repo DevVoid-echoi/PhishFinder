@@ -117,6 +117,8 @@ def page_client(client, monkeypatch):
         raise AssertionError("analyze-page must not download the page")
 
     monkeypatch.setattr(main, "follow", no_download)
+    monkeypatch.setattr(main, "check_domain_age", lambda d: None)  # an old domain unless a test says otherwise
+    monkeypatch.setattr(main, "age_cache", TTLCache())
     monkeypatch.setattr(main, "claude_extract", fake_claude)
     monkeypatch.setattr(main, "page_cache", TTLCache())
     monkeypatch.setattr(main, "ai_budget", DailyBudget(limit=1))
@@ -178,3 +180,16 @@ def test_analyze_page_takes_a_hostname_only(page_client, host):
 def test_analyze_page_rejects_oversized_content(page_client, field, value):
     client, _ = page_client
     assert client.post("/v1/analyze-page", json={**PAGE, field: value}).status_code == 422
+
+
+def test_analyze_page_uses_the_servers_domain_age(page_client, monkeypatch):
+    client, _ = page_client
+    looked_up = []
+    monkeypatch.setattr(main, "claude_extract", None)  # rules only: the fake AI would add its own findings
+    monkeypatch.setattr(main, "check_domain_age",
+                        lambda d: looked_up.append(d) or (35, "Domain was registered 9 days ago"))
+    page = {"host": "login.vinacmc.net", "title": "Đăng nhập", "text": "",
+            "inputs": [{"type": "password", "hints": "password"}], "form_hosts": []}
+    r = client.post("/v1/analyze-page", json=page).json()
+    assert [x["rule"] for x in r["reasons"]] == ["page_new_domain_sensitive"]
+    assert looked_up == ["vinacmc.net"]  # the registered domain, as /v1/reputation looks it up

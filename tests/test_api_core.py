@@ -6,6 +6,7 @@ import pytest
 from app.api_core import (BudgetExhausted,
                           DailyBudget,
                           TTLCache,
+                          domain_age,
                           domain_reputation,
                           normalize_host)
 
@@ -113,3 +114,12 @@ def test_budget_stops_calls_when_spent():
     with pytest.raises(BudgetExhausted):
         limited("system", "page")
     assert calls == [("system", "page")]
+
+
+def test_domain_age_is_looked_up_once_per_domain():
+    calls = []
+    cache = TTLCache()
+    age_fn = lambda d: calls.append(d) or (15, "Domain is fairly new (40 days old)")
+    assert domain_age("vinacmc.net", age_fn, cache) == (15, "Domain is fairly new (40 days old)")
+    assert domain_age("vinacmc.net", age_fn, cache) == (15, "Domain is fairly new (40 days old)")
+    assert calls == ["vinacmc.net"]
