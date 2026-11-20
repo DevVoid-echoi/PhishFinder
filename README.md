@@ -63,7 +63,7 @@ URL ─► parser ─► rules (in the browser) ─► score + level + reasons
          │
          └─► server checks, hostname only: domain age (RDAP), TLS certificate
 
-page as the browser rendered it (opt-in, yellow pages only)
+page as the browser rendered it (opt-in: yellow URLs or new domains)
          └─► extension reads title, text, input fields, form targets
                   └─► server: page rules + AI (hostname, never the URL)
 ```
@@ -126,12 +126,12 @@ Targets before release: red false alarms at or below 0.05% and yellow at or belo
 
 **Live Vietnamese phishing pages.** Since 2026-11-11, 6 to 11 pages a day are copied by hand from ChongLuaDao's public listings, with what the screenshot asks for, and downloaded in a virtual machine with a Vietnamese IP on the same day (`scripts/measure_pages.py labelled`). Of the first 41 pages, 39 could be downloaded; 20 of them had under 200 characters of text because the page is built by JavaScript, and the page rules caught 1. This is why the extension, not the server, reads the page. The URL rules caught 5 of 44 URLs: most of these scams (job tasks, game top-ups, loans, crypto investment) do not name a brand in the domain.
 
-**Learned weights.** `python -m scripts.evaluate --calibrate` fits a logistic regression on the fired rules (one interpretable weight per rule, class balancing, L2 and thresholds chosen on validation) with PhishVN added to training and validation, and saves `data/weights.json` only if the model detects at least as much as the hand-written points on every validation set. It does not yet: on PhishVN validation it detects 10.2% against 18.5%. Most training phishing is random domains on cheap TLDs, so the model trusts a cheap TLD more than brand impersonation, and the threshold that keeps false alarms on legitimate cheap-TLD sites under target leaves brand impersonation alone below it. Counting each domain once, choosing the model on PhishVN, other L2 strengths and up-weighting PhishVN 30 times did not change that; new evidence (domain age, TLS) is being collected instead.
+**Learned weights.** `python -m scripts.evaluate --calibrate` fits a logistic regression on the fired rules (one interpretable weight per rule, class balancing, L2 and thresholds chosen on validation) with PhishVN added to training and validation, and saves `data/weights.json` only if the model detects at least as much as the hand-written points on every validation set. It does not yet: on PhishVN validation it detects 10.2% against 18.5%. Most training phishing is random domains on cheap TLDs, so the model trusts a cheap TLD more than brand impersonation, and the threshold that keeps false alarms on legitimate cheap-TLD sites under target leaves brand impersonation alone below it. Counting each domain once, choosing the model on PhishVN, other L2 strengths and up-weighting PhishVN 30 times did not change that. Server signals do: on the 2,810 hosts looked up so far, split by day, weights learned with domain age and TLS caught 30% of phishing (20.7% red) against 3% for the URL rules, with 2 false alarms in 300 benign hosts. They are not adopted yet: 300 benign hosts cannot show a 0.05% red rate (300 a day are now looked up), and the evaluation data turns every bare domain into `http://`, which must be fixed first.
 
 ## Known limitations
 
 - **Few Vietnamese samples.** The main Vietnamese feed (vn-badsite-filter, from ChongLuaDao) has been frozen since May 2025, and international feeds contain almost no Vietnamese-targeted pages. The hand-labelled ChongLuaDao pages grow by 6 to 11 a day and are kept locally.
-- **Brands are listed by hand.** A scam on a brand missing from `brands.json` is not caught by the brand rules; known false alarms that were accepted (`finance.si`, close to `binance`; `arena.ne.jp`, close to `garena`) are listed in `note.md`. Rules that need no brand list (a sensitive field on a newly registered domain) are next.
+- **Brands are listed by hand.** A scam on a brand missing from `brands.json` is not caught by the brand rules; known false alarms that were accepted (`finance.si`, close to `binance`; `arena.ne.jp`, close to `garena`) are listed in `note.md`. The new-domain page rule needs no brand list, but it cannot see `.vn` domains (no RDAP) or old and hacked ones.
 - **Short-brand trade-off.** Matching short brands as whole tokens removes false alarms such as `zalora.com`, but misses `momoshop.com`. One-letter typos on short names (`shoppe`, `vpbamk`) fall under the similarity threshold.
 - **Popular does not mean safe.** The Tranco allowlist measures traffic, not trust. It only disables lookalike checks on the domain itself, and the blocklist always wins.
 - **Legitimate internationalized domains** (Thai, Russian...) can be flagged as suspicious by the punycode rule.
@@ -194,7 +194,7 @@ PhishFinder/
 
 ## Roadmap
 
-1. **Page analysis:** rules, a prompt-injection-resistant AI layer and the opt-in endpoint that takes what the extension read are done, and measured daily on live Vietnamese phishing. Next: a rule that needs no brand list (a password, OTP, card or CCCD field on a newly registered domain), the AI's own brand guess on new domains, and later official titles collected from NCSC-certified sites.
+1. **Page analysis:** rules, a prompt-injection-resistant AI layer and the opt-in endpoint that takes what the extension read are done, and measured daily on live Vietnamese phishing. A rule that needs no brand list (a sensitive field on a domain under 180 days old) is in. Next: weights learned with the server signals, the AI's own brand guess on new domains, and later official titles collected from NCSC-certified sites.
 2. **Chrome extension:** the same rules in JavaScript, verified against Python test vectors; private beta, then Chrome Web Store.
 3. **Later:** email header analysis (SPF, DKIM, DMARC) for analysts, Certificate Transparency monitoring.
 
